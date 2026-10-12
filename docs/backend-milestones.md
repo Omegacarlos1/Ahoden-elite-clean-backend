@@ -80,7 +80,7 @@ Next prompt: return the complete prompt from docs/prompts/M02.md.
 
 ## M02 Authentication permissions and audit foundation
 
-Effort: 5–8 developer days. Status: IMPLEMENTED WITH BLOCKED VERIFICATION. PRD mapping: 3, 4.6, 4.9.
+Effort: 5–8 developer days. Status: VERIFIED. PRD mapping: 3, 4.6, 4.9.
 
 Deliverables: Implement customer registration, staff invitation, one-time owner bootstrap, login, short-lived access tokens, rotating refresh sessions, logout, password reset and owner/admin MFA enrollment and verification. Use explicit field allowlists, password hashing, rate limiting and hashed reset/refresh credentials at rest. Establish server-side role and resource authorization and an append-only audit writer. Staff provisioning and role changes are owner controlled. Select and document cookie/CSRF/CORS behavior for the eventual React client.
 

@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-- Status: IMPLEMENTED WITH BLOCKED VERIFICATION (local MariaDB complete; MySQL 8.4 CI pending at report creation)
+- Status: VERIFIED
 - PRD mapping: 3, 4.6, 4.9
 - Prerequisites: M01 VERIFIED and merged through PR #1
 
@@ -17,7 +17,7 @@
 | Resource authorization | Current-user lookup and concealed cross-customer read test | PASS |
 | Transactional immutable audit | Registration/bootstrap/invite/security/reset audit in transactions; DB triggers reject update/delete | PASS |
 | Cleaner finance denial | No finance resource exists before M05; owner-only authorization foundation is tested | NOT APPLICABLE IN M02 API |
-| MySQL compatibility | Workflow provisions MySQL 8.4 and runs migrations/all gates | PENDING CI |
+| MySQL compatibility | GitHub Actions run 38286262505 provisions MySQL 8.4 and runs clean migrations/all gates | PASS |
 
 ## Implementation and API/schema changes
 
