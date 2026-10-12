@@ -101,3 +101,8 @@ At the end of each milestone:
 ### Safety Rules
 
 Before performing Git operations, inspect the current branch, working tree and remote configuration. Preserve unrelated changes. Never automatically delete branches, discard uncommitted work or force-push.
+
+## Repository milestone state
+
+- M01 is implemented on `feature/B01-backend-foundation` with local XAMPP MariaDB verification. Production-equivalent MySQL 8.4 CI must pass before changing M01 from `IMPLEMENTED WITH BLOCKED VERIFICATION` to `VERIFIED`.
+- M02 is not started and requires explicit milestone approval/instruction.

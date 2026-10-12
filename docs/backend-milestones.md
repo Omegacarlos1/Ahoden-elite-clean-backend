@@ -58,7 +58,7 @@ Postman assertions: https://learning.postman.com/docs/tests-and-scripts/write-sc
 
 ## M01 Project foundation and database
 
-Effort: 3–5 developer days. Status: NOT STARTED. PRD mapping: 5, 7, 8.
+Effort: 3–5 developer days. Status: IMPLEMENTED WITH BLOCKED VERIFICATION. PRD mapping: 5, 7, 8.
 
 Deliverables: Create a modular Express application with TypeScript strict mode, separate app/server entry points, validated environment configuration, structured redacted logs and request IDs. Set up MySQL migrations, an isolated test database, seed fixtures, error handling, validation, pagination conventions, OpenAPI and CI. Record ORM and runtime choices in an architecture decision record. Provide Windows PowerShell and XAMPP setup instructions and compare MariaDB behavior with production MySQL.
 
