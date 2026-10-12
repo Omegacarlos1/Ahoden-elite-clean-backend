@@ -41,6 +41,7 @@ Record exact commands, exit codes, versions, pass/fail/skip counts, evidence and
 ## Milestone output contract
 
 Each milestone supplies:
+
 - Implementation summary and acceptance-criterion mapping with evidence.
 - Actual test report; commands, counts, failures/fixes and skipped/blocked checks.
 - OpenAPI and Postman updates with fixtures, role credentials as local placeholders, request bodies, expected statuses, assertions and negative cases. Keep exports secret-free.
@@ -52,3 +53,51 @@ Use docs/templates/milestone-report.md as the report template. Keep milestone st
 ## Autonomy boundaries
 
 Proceed with reversible repository implementation and isolated local tests within the active milestone. Do not ask about routine technical choices already delegated. Use labelled nonproduction fixtures while business rules are pending. Obtain missing decisions before enabling their production behavior. No production migrations, live funds, external customer notifications, infrastructure purchases or production deployment unless explicitly authorized for that action. Do not commit or push changes unless instructed or required by the repository workflow. Do not spawn agents unless explicitly requested. Finish the active milestone before yielding; if blocked, complete independent work and report the exact blocker.
+
+## Git and GitHub Development Workflow
+
+All backend development must follow a milestone-based Git workflow.
+
+### Branch Management
+
+- The `main` branch represents reviewed and accepted work.
+- Each milestone must be developed on a separate feature branch.
+- Branch naming convention: `feature/B01-backend-foundation`, `feature/B02-authentication`, etc.
+- Never push unfinished milestone changes directly to `main`.
+
+### Commit Standards
+
+Use clear, descriptive conventional commits.
+
+Examples:
+
+- `chore: configure Express and TypeScript`
+- `feat: implement database connection`
+- `test: add health endpoint integration tests`
+- `docs: update B01 milestone summary`
+- `fix: resolve database migration error`
+
+### GitHub Push Requirements
+
+- Make small commits after completing meaningful tasks.
+- Push the current feature branch to GitHub after successful local verification.
+- Never commit `.env`, API keys, database passwords or other secrets.
+- Never force-push or overwrite remote changes without explicit approval.
+- Do not automatically merge a feature branch into `main`.
+
+### Milestone Completion
+
+At the end of each milestone:
+
+1. Run lint, type checking and relevant automated tests.
+2. Generate the milestone summary and actual test results.
+3. Update the Postman collection and API documentation.
+4. Update the milestone tracker and AGENTS.md.
+5. Commit the completed milestone work.
+6. Push the feature branch to GitHub.
+7. Provide a pull request description with changes, tests, risks and remaining issues.
+8. Wait for explicit milestone approval before merging or starting the next milestone.
+
+### Safety Rules
+
+Before performing Git operations, inspect the current branch, working tree and remote configuration. Preserve unrelated changes. Never automatically delete branches, discard uncommitted work or force-push.
