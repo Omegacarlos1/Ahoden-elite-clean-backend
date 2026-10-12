@@ -1,0 +1,141 @@
+openapi: 3.1.0
+info:
+  title: Ahoden Elite Clean API
+  version: 0.1.0
+  description: M01 platform probes and shared API conventions.
+servers:
+  - url: http://127.0.0.1:3000
+    description: Local XAMPP development
+tags:
+  - name: System
+paths:
+  /health:
+    get:
+      tags: [System]
+      operationId: getHealth
+      summary: Process liveness
+      security: []
+      responses:
+        '200':
+          description: The HTTP process is alive.
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example:
+                status: ok
+  /ready:
+    get:
+      tags: [System]
+      operationId: getReadiness
+      summary: Process and database readiness
+      security: []
+      responses:
+        '200':
+          description: The API can query its database.
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readiness'
+              example:
+                status: ready
+        '503':
+          description: The database is unavailable; no connection details are exposed.
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - type: object
+                    required: [status]
+                    properties:
+                      status:
+                        type: string
+                        const: unavailable
+              example:
+                status: unavailable
+                error:
+                  code: DATABASE_UNAVAILABLE
+                  message: Database is unavailable.
+                requestId: 0199f59e-1111-7000-8000-000000000001
+components:
+  headers:
+    RequestId:
+      description: Caller-supplied safe request ID or a server-generated UUID.
+      schema:
+        type: string
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    Readiness:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ready
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          description: Safe validation details; omitted for sensitive failures.
+    ErrorResponse:
+      type: object
+      required: [error, requestId]
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+        requestId:
+          type: string
+    PaginationQuery:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          default: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 25
+    PaginationMeta:
+      type: object
+      required: [page, pageSize, total, totalPages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+
