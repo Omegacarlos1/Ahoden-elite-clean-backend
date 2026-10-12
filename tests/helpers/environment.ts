@@ -14,6 +14,11 @@ export function testEnvironment(overrides: Partial<Environment> = {}): Environme
     bodyLimit: '100kb',
     allowTestDatabaseReset: true,
     testDatabaseAllowedHosts: ['127.0.0.1', 'localhost', 'mysql'],
+    accessTokenSecret: 'test-only-access-token-secret-32-bytes-minimum',
+    mfaEncryptionKey: Buffer.alloc(32, 7).toString('base64'),
+    ownerBootstrapToken: 'test-only-owner-bootstrap-token',
+    accessTokenTtlSeconds: 900,
+    refreshTokenTtlDays: 30,
     ...overrides
   };
 }

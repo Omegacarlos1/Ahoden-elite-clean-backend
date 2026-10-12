@@ -39,6 +39,9 @@ jobs:
       BODY_LIMIT: 100kb
       ALLOW_TEST_DATABASE_RESET: 'true'
       TEST_DATABASE_ALLOWED_HOSTS: 127.0.0.1,localhost,mysql
+      ACCESS_TOKEN_SECRET: ci-only-access-token-secret-32-bytes-minimum
+      MFA_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+      OWNER_BOOTSTRAP_TOKEN: ci-only-owner-bootstrap-token
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
