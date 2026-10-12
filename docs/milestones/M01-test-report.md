@@ -2,13 +2,14 @@
 
 ## Status and environment
 
-- Status: **IMPLEMENTED WITH BLOCKED VERIFICATION**
+- Status: **VERIFIED**
 - Executed: 12 October 2026, local Windows/XAMPP environment
 - Node.js: 24.19.0; npm: 11.17.0
 - Local database: MariaDB 10.4.32, `utf8mb4`, XAMPP
-- Production compatibility target: MySQL 8.4 in `.github/workflows/ci.yml`
-- Skipped/blocked: local MySQL 8.4 execution (Docker/MySQL 8 is unavailable);
-  remote GitHub Actions has not yet run.
+- Production compatibility: MySQL 8.4 in successful GitHub Actions run
+  [38275026817](https://github.com/Omegacarlos1/Ahoden-elite-clean-backend/actions/runs/38275026817)
+- Required skipped/blocked checks: none. Docker/MySQL 8 was unavailable locally,
+  but the required production-engine gate ran successfully in CI.
 
 ## Final command evidence
 
@@ -24,7 +25,8 @@
 | `npm run test:integration` | 0 | 6 pass, 0 fail, 0 skip | Real MariaDB schema, fixtures, rollback, principals/DDL, ready and refused-connection 503 |
 | `npm run test:postman` | 0 | 4 requests, 4 scripts, 9 assertions; 0 failures | Health, ready, 404, malformed JSON |
 | `npm audit --json` | 0 | 0 vulnerabilities | 303 total dependency nodes reported |
-| `docker --version` | 1 | Blocked | Docker command not installed; no local MySQL 8.4 container |
+| `docker --version` | 1 | Locally unavailable, not a required skip | Docker command not installed; MySQL 8.4 ran in CI instead |
+| GitHub Actions run `38275026817` | 0 | Pass | MySQL 8.4; all setup and verification steps succeeded |
 
 Total automated assertions/tests counted by their runners: 23 Mocha tests plus 9
 Postman assertions, all passing. Migration/reset operations are reported
@@ -83,9 +85,11 @@ and replaced only `test.fixture` rows inside a transaction. No development,
 staging, or production data was deleted. Production rollback remains disabled;
 use backup plus reviewed forward-fix procedures.
 
-## CI verification still required
+## CI verification evidence
 
-The workflow is configured for MySQL 8.4 with a clean service database, distinct
-runtime/migration users, every required Mocha gate, and Postman smoke execution.
-Until that remote job passes, the milestone cannot be marked `VERIFIED` under the
-repository rules.
+GitHub Actions run `38275026817`, job `114898259716`, completed successfully from
+16:06:06Z to 16:07:16Z on 12 October 2026. The clean MySQL 8.4 service initialized;
+`npm ci`, least-privilege account creation, lint, typecheck, build, unit tests, API
+tests, guarded reset, integration tests, Postman smoke, and container cleanup all
+reported `success`. M01 therefore meets the repository's technical `VERIFIED`
+gate. Client acceptance and production release remain separate.

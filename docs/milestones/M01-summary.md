@@ -2,13 +2,14 @@
 
 ## Status and scope
 
-- Status: **IMPLEMENTED WITH BLOCKED VERIFICATION**
+- Status: **VERIFIED**
 - Date: 12 October 2026
 - PRD mapping: sections 5, 7, and 8
 - Prerequisite: none
-- Verification boundary: all local checks pass on XAMPP MariaDB 10.4.32; the
-  committed MySQL 8.4 GitHub Actions job has not yet run, so MariaDB-only evidence
-  is not represented as production MySQL verification.
+- Verification boundary: all local checks pass on XAMPP MariaDB 10.4.32 and
+  production-equivalent MySQL 8.4 GitHub Actions run
+  [38275026817](https://github.com/Omegacarlos1/Ahoden-elite-clean-backend/actions/runs/38275026817)
+  passed. This is technical verification, not client acceptance or launch approval.
 
 M01 only establishes the backend foundation. No authentication, customer,
 booking, payment, attendance, or other later-milestone domain behavior was added.
@@ -27,8 +28,8 @@ booking, payment, attendance, or other later-milestone domain behavior was added
 | Fresh migrations and deterministic fixtures | Guarded reset rolled back all M01 migrations, reapplied one migration, and seeded two namespaced records; idempotency tested | Pass on MariaDB |
 | Tests cannot target production | Environment/host/database-name/reset-flag/production-target guards have positive and negative unit tests | Pass |
 | Separate credentials | XAMPP script creates dev/test migration and runtime users; integration test proves distinct principals and denied runtime DDL | Pass locally |
-| Production MySQL compatibility | CI provisions MySQL 8.4, separate test principals, migrations, and all Mocha suites | Pending remote CI |
-| CI executes required checks | Workflow contains lint, typecheck, build, unit, API, integration, guarded reset, and Postman steps | Implemented; remote run pending |
+| Production MySQL compatibility | MySQL 8.4 CI used separate test principals and passed migrations, fixtures, transactions, and all integration tests | Pass |
+| CI executes required checks | Run 38275026817 passed clean install, lint, typecheck, build, unit, API, integration, guarded reset, and Postman steps | Pass |
 
 ## Implementation and API/schema changes
 
@@ -88,12 +89,12 @@ providers, domain/hosting, and acceptance/handover remain in `docs/decisions.md`
 
 - Local: lint/typecheck/build pass; 12 unit, 5 API, 6 integration, and 9 Postman
   assertions pass; npm audit reports zero vulnerabilities.
-- Pending: first remote MySQL 8.4 GitHub Actions execution.
+- Remote: MySQL 8.4 GitHub Actions run 38275026817 passed every required step.
 
 ### Risks and remaining issues
 
-- MariaDB JSON/collation/DDL behavior does not prove MySQL compatibility until CI
-  passes.
+- Future migrations must continue to pass both MariaDB and MySQL because their
+  JSON/collation/DDL/locking behavior can diverge.
 - No production deployment, migration, backup drill, external provider, or client
   acceptance was performed.
 

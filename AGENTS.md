@@ -104,5 +104,5 @@ Before performing Git operations, inspect the current branch, working tree and r
 
 ## Repository milestone state
 
-- M01 is implemented on `feature/B01-backend-foundation` with local XAMPP MariaDB verification. Production-equivalent MySQL 8.4 CI must pass before changing M01 from `IMPLEMENTED WITH BLOCKED VERIFICATION` to `VERIFIED`.
+- M01 is `VERIFIED` on `feature/B01-backend-foundation`: local XAMPP MariaDB verification and production-equivalent MySQL 8.4 GitHub Actions run 38275026817 passed.
 - M02 is not started and requires explicit milestone approval/instruction.
