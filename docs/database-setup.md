@@ -32,6 +32,12 @@ record, and audit events. The migration installs triggers that reject every
 Test seeding deletes and recreates only the `test.fixture` namespace inside a
 transaction. The XAMPP setup script also creates ignored authentication secrets.
 
+MySQL servers with binary logging require a database administrator to enable
+`log_bin_trust_function_creators` for the reviewed migration account (or to
+install the triggers using an appropriately controlled administrative process).
+The runtime account is never granted `SUPER`; CI enables the setting only on its
+ephemeral MySQL 8.4 service before applying migrations.
+
 ## MariaDB local vs production MySQL
 
 Local verification on 12 October 2026 used XAMPP MariaDB 10.4.32. CI targets

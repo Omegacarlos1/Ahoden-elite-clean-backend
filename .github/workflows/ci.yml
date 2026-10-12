@@ -52,6 +52,7 @@ jobs:
       - name: Create least-privilege test accounts
         run: |
           mysql --protocol=tcp -h 127.0.0.1 -u root <<'SQL'
+          SET GLOBAL log_bin_trust_function_creators = 1;
           CREATE USER IF NOT EXISTS 'ahoden_test_migrator'@'%' IDENTIFIED BY '';
           CREATE USER IF NOT EXISTS 'ahoden_test_app'@'%' IDENTIFIED BY '';
           GRANT ALL PRIVILEGES ON ahoden_elite_clean_test.* TO 'ahoden_test_migrator'@'%';
