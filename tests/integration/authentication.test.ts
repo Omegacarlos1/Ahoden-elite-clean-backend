@@ -91,7 +91,7 @@ describe('authentication and authorization integration', () => {
     const completed = await request(app).post('/api/v1/auth/password-reset/complete').send({ token: delivered.reset, password: 'New strong password 1!' }); expect(completed.status).to.equal(204);
     const reused = await request(app).post('/api/v1/auth/password-reset/complete').send({ token: delivered.reset, password: 'Another password 1!' }); expect(reused.status).to.equal(400);
     await request(app).post('/api/v1/auth/password-reset/request').send({ email: 'customer-a@example.test' });
-    await database('password_reset_tokens').where({ token_hash: digest(delivered.reset) }).update({ expires_at: new Date(0) });
+    await database('password_reset_tokens').where({ token_hash: digest(delivered.reset) }).update({ expires_at: new Date('2001-01-01T00:00:00.000Z') });
     const expired = await request(app).post('/api/v1/auth/password-reset/complete').send({ token: delivered.reset, password: 'Another password 1!' }); expect(expired.status).to.equal(400);
   });
 

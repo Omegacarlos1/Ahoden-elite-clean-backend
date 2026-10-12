@@ -25,7 +25,7 @@ Total Mocha result: 35 passing, 0 failing. Postman CLI warned that its user-prof
 
 ## Failures fixed and blocked checks
 
-The first integration run had 12 passing and 2 failing. Refresh reuse revocation was initially rolled back because the error was thrown inside the transaction; detection now commits family revocation/audit before returning the safe error. User-security audit serialization initially included a Knex SQL expression; the audit now records only concrete before/after fields. The rerun passed. Initial MySQL 8.4 CI reached the clean migration step and exposed `ER_BINLOG_CREATE_ROUTINE_NEED_SUPER` while installing audit triggers. CI now enables `log_bin_trust_function_creators` on its ephemeral server before the reviewed migrator runs; production setup notes record the corresponding DBA prerequisite. A new MySQL run is pending.
+The first integration run had 12 passing and 2 failing. Refresh reuse revocation was initially rolled back because the error was thrown inside the transaction; detection now commits family revocation/audit before returning the safe error. User-security audit serialization initially included a Knex SQL expression; the audit now records only concrete before/after fields. The rerun passed. Initial MySQL 8.4 CI reached the clean migration step and exposed `ER_BINLOG_CREATE_ROUTINE_NEED_SUPER` while installing audit triggers. CI now enables `log_bin_trust_function_creators` on its ephemeral server before the reviewed migrator runs; production setup notes record the corresponding DBA prerequisite. The next run exposed a test-only MariaDB/MySQL boundary: MySQL rejected epoch zero for a `TIMESTAMP` expiry. The expiry fixture now uses a portable 2001 timestamp. A new MySQL run is pending.
 
 ## Coverage notes
 
