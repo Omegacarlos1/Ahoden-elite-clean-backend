@@ -2,7 +2,9 @@ node_modules/
 .env
 .env.*
 !.env.example
+!.env.test.example
 coverage/
 dist/
+newman/
 .DS_Store
 *.log
