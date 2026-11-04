@@ -2,11 +2,11 @@
 
 ## Status and environment
 
-- Status: IMPLEMENTED WITH BLOCKED VERIFICATION
+- Status: VERIFIED
 - Date: 4 November 2026
 - Runtime: Node.js 24.19.0; npm 11.17.0
 - Local database: XAMPP MariaDB 10.4.32
-- Production-equivalent database: MySQL 8.4 GitHub Actions run pending after push
+- Production-equivalent database: MySQL 8.4 GitHub Actions run 41858205596, success
 - Test database: guarded `ahoden_elite_clean_test`; reset protection and separate runtime/migration principals retained
 
 ## Verification
@@ -24,6 +24,7 @@
 | `postman collection lint postman/Ahoden_Backend.postman_collection.json` | 0 | No issues | Local Postman CLI |
 | `postman environment lint postman/Ahoden_Local.environment.json --fail-severity warning` | 0 | 1 artifact scanned; 0 errors/warnings | Local Postman CLI |
 | `npm run test:postman -- --env-var baseUrl=http://127.0.0.1:3001 --no-report-events` | 0 | 21 requests, 40 assertions, 0 failures | Live compiled API + real MariaDB |
+| GitHub Actions `backend-ci` run 41858205596 | 0 | `npm ci`, least-privilege accounts, lint, typecheck, build, unit, API, reset, integration and Postman steps all succeeded | Ubuntu + MySQL 8.4 |
 
 Unit count includes the existing uncommitted user-owned database startup tests;
 those files were not staged as M04 work. The M04-specific API and integration
@@ -70,7 +71,6 @@ booking/payment-state injection before service calls.
 
 Blocked/skipped:
 
-- MySQL 8.4 compatibility is pending GitHub Actions and prevents `VERIFIED` status.
 - The manual `Assign paid job - 201` Postman request was not executed because M04
   intentionally has no legitimate API/provider path to paid state. Equivalent
   manager/cleaner/paid-boundary behavior passed against controlled real-database

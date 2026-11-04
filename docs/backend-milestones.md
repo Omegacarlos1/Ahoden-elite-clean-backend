@@ -125,7 +125,7 @@ Next prompt: return the complete prompt from docs/prompts/M04.md.
 
 ## M04 Bookings scheduling and job assignment
 
-Effort: 5–7 developer days. Status: IMPLEMENTED WITH BLOCKED VERIFICATION. PRD mapping: 4.1, 4.3.
+Effort: 5–7 developer days. Status: VERIFIED. PRD mapping: 4.1, 4.3.
 
 Deliverables: Build quote-to-booking conversion, customer history, transactional capacity reservations, reservation expiry, reschedule/cancel rules and manager job assignment. Maintain separate booking, job and payment states with explicit permitted transitions. Enforce cleaner availability and ownership. Add API idempotency keys for creation and audit cancellation/reassignment. Until payments are implemented, prepaid bookings stay pending payment.
 

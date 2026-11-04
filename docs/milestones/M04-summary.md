@@ -2,27 +2,27 @@
 
 ## Status and scope
 
-- Status: IMPLEMENTED WITH BLOCKED VERIFICATION
+- Status: VERIFIED
 - PRD mapping: 4.1 customer booking/history and 4.3 job assignment/state ownership
 - Prerequisite: M03 was VERIFIED, client-accepted, and merged into `main`; latest M03 commit `c7ffc7b` is an ancestor of the M04 branch baseline.
 - Branch: `feature/B04-bookings-scheduling-job-assignment`
-- Remaining verification gate: GitHub Actions MySQL 8.4 run after push. Local MariaDB 10.4.32 checks passed; that does not prove MySQL compatibility.
+- Verification gate: local MariaDB 10.4.32 checks passed and production-equivalent MySQL 8.4 GitHub Actions run 41858205596 passed on commit `a84d907`.
 
 ## Acceptance evidence
 
 | Criterion | Evidence | Result |
 | --- | --- | --- |
-| Quote-to-booking and history | `POST/GET /api/v1/bookings`, strict body validation, ownership-concealed detail and bounded history | PASS locally |
-| Capacity cannot be exceeded | Capacity slot is row-locked, expired holds are released under lock, and parallel different-customer booking test yields one `201` and one `409` | PASS locally |
-| Duplicate keys cannot create two bookings | Scoped key + SHA-256 payload hash + unique constraint; sequential and concurrent replay tests return one booking | PASS locally |
-| Expired quote | Booking conversion checks the server clock and returns `409 QUOTE_EXPIRED` | PASS locally |
-| Reservation expiry | Pending holds use `BOOKING_RESERVATION_TTL_SECONDS`; the next locked slot operation releases expired holds, expires booking/job state and restores capacity transactionally | PASS locally |
-| Reschedule/cancel rules | Snapshotted notice/maximum-change rules are enforced; capacity and audit/history changes commit together | PASS locally |
-| Unauthorized resource access | Cross-customer bookings and unassigned-cleaner jobs return concealed `404`; role violations return `403` | PASS locally |
-| Concurrent reschedule/assignment | Target slots, jobs and cleaner user rows are locked; overlap uses a locking read; optimistic job versions reject stale writes | PASS locally |
-| Explicit states and invalid jumps | Booking, payment and job state columns are separate; role-specific transition maps and versions return `409` for invalid/stale jumps | PASS locally |
-| Unpaid prepaid dispatch | Customer-created booking is `pending_payment` / payment `pending` / job `awaiting_payment`; assignment returns `409 PAYMENT_REQUIRED`; no paid/credit API exists | PASS locally |
-| Audit cancellation/reassignment | `booking.cancelled` and `job.reassigned` audit rows are written in the same transaction; existing audit mutation triggers remain enforced | PASS locally |
+| Quote-to-booking and history | `POST/GET /api/v1/bookings`, strict body validation, ownership-concealed detail and bounded history | PASS |
+| Capacity cannot be exceeded | Capacity slot is row-locked, expired holds are released under lock, and parallel different-customer booking test yields one `201` and one `409` | PASS |
+| Duplicate keys cannot create two bookings | Scoped key + SHA-256 payload hash + unique constraint; sequential and concurrent replay tests return one booking | PASS |
+| Expired quote | Booking conversion checks the server clock and returns `409 QUOTE_EXPIRED` | PASS |
+| Reservation expiry | Pending holds use `BOOKING_RESERVATION_TTL_SECONDS`; the next locked slot operation releases expired holds, expires booking/job state and restores capacity transactionally | PASS |
+| Reschedule/cancel rules | Snapshotted notice/maximum-change rules are enforced; capacity and audit/history changes commit together | PASS |
+| Unauthorized resource access | Cross-customer bookings and unassigned-cleaner jobs return concealed `404`; role violations return `403` | PASS |
+| Concurrent reschedule/assignment | Target slots, jobs and cleaner user rows are locked; overlap uses a locking read; optimistic job versions reject stale writes | PASS |
+| Explicit states and invalid jumps | Booking, payment and job state columns are separate; role-specific transition maps and versions return `409` for invalid/stale jumps | PASS |
+| Unpaid prepaid dispatch | Customer-created booking is `pending_payment` / payment `pending` / job `awaiting_payment`; assignment returns `409 PAYMENT_REQUIRED`; no paid/credit API exists | PASS |
+| Audit cancellation/reassignment | `booking.cancelled` and `job.reassigned` audit rows are written in the same transaction; existing audit mutation triggers remain enforced | PASS |
 
 ## Implementation and API/schema changes
 
