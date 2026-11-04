@@ -20,6 +20,7 @@ export function testEnvironment(overrides: Partial<Environment> = {}): Environme
     accessTokenTtlSeconds: 900,
     refreshTokenTtlDays: 30,
     quoteTtlSeconds: 900,
+    bookingReservationTtlSeconds: 900,
     catalogueProductionActivationEnabled: false,
     ...overrides
   };

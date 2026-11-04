@@ -9,6 +9,7 @@ import { getRequestId } from '../../http/request-id.js';
 import { createRateLimit } from '../../http/rate-limit.js';
 import { createTotpSecret, decryptSecret, digest, encryptSecret, hashPassword, randomToken, signToken, verifyPassword, verifyToken, verifyTotp } from '../../security/auth-crypto.js';
 import { createCatalogueRouter } from '../catalogue/catalogue.routes.js';
+import { createBookingsRouter } from '../bookings/bookings.routes.js';
 
 type Role = 'customer' | 'cleaner' | 'manager' | 'admin' | 'owner';
 interface UserRow { id: string; email: string; display_name: string; password_hash: string; role: Role; status: 'active' | 'disabled' | 'mfa_pending'; mfa_secret_encrypted: string | null; mfa_verified_at: Date | null; }
@@ -111,5 +112,6 @@ export function createAuthRouter(database: Knex, environment: Environment, deliv
   router.patch('/users/:id/security', async (request, response, next) => { try { const actor = await requireOwner(request); if (actor.id === request.params.id) throw new AppError(409, 'SELF_CHANGE_DENIED', 'Owner cannot change their own role or status here.'); const body = z.object({ role: z.enum(['customer', 'cleaner', 'manager', 'admin']).optional(), status: z.enum(['active', 'disabled']).optional(), reason: z.string().min(3).max(255) }).strict().refine((v) => v.role !== undefined || v.status !== undefined).parse(request.body); await database.transaction(async (tx) => { const target = await tx<UserRow>('users').where({ id: request.params.id }).forUpdate().first(); if (target === undefined || target.role === 'owner') throw new AppError(404, 'NOT_FOUND', 'User was not found.'); const changes = { ...(body.role === undefined ? {} : { role: body.role }), ...(body.status === undefined ? {} : { status: body.status }), updated_at: tx.fn.now() }; await tx('users').where({ id: target.id }).update(changes); await tx('auth_sessions').where({ user_id: target.id }).whereNull('revoked_at').update({ revoked_at: tx.fn.now() }); await audit(tx, request, 'user.security_changed', 'user', target.id, actor.id, { role: target.role, status: target.status }, { role: body.role ?? target.role, status: body.status ?? target.status }, body.reason); }); response.status(204).send(); } catch (error) { next(error); } });
 
   router.use(createCatalogueRouter(database, environment));
+  router.use(createBookingsRouter(database, environment));
   return router;
 }

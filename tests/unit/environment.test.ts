@@ -29,6 +29,13 @@ describe('environment configuration', () => {
     expect(result.nodeEnv).to.equal('test');
     expect(result.port).to.equal(3001);
     expect(result.corsOrigins).to.deep.equal(['http://localhost:5173']);
+    expect(result.bookingReservationTtlSeconds).to.equal(900);
+  });
+
+  it('bounds the booking capacity reservation TTL', () => {
+    expect(() =>
+      loadEnvironment({ ...validEnvironment, BOOKING_RESERVATION_TTL_SECONDS: '30' })
+    ).to.throw(ConfigurationError, 'BOOKING_RESERVATION_TTL_SECONDS');
   });
 
   it('fails safely when required configuration is absent', () => {

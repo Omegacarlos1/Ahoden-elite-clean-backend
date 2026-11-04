@@ -25,6 +25,7 @@ const environmentSchema = z
     ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
     QUOTE_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+    BOOKING_RESERVATION_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
     CATALOGUE_PRODUCTION_ACTIVATION_ENABLED: z.enum(['true', 'false']).default('false')
   })
   .superRefine((value, context) => {
@@ -80,6 +81,7 @@ export interface Environment {
   accessTokenTtlSeconds: number;
   refreshTokenTtlDays: number;
   quoteTtlSeconds: number;
+  bookingReservationTtlSeconds: number;
   catalogueProductionActivationEnabled: boolean;
 }
 
@@ -136,6 +138,7 @@ export function loadEnvironment(source: NodeJS.ProcessEnv = process.env): Enviro
     accessTokenTtlSeconds: parsed.ACCESS_TOKEN_TTL_SECONDS,
     refreshTokenTtlDays: parsed.REFRESH_TOKEN_TTL_DAYS,
     quoteTtlSeconds: parsed.QUOTE_TTL_SECONDS,
+    bookingReservationTtlSeconds: parsed.BOOKING_RESERVATION_TTL_SECONDS,
     catalogueProductionActivationEnabled:
       parsed.CATALOGUE_PRODUCTION_ACTIVATION_ENABLED === 'true'
   };

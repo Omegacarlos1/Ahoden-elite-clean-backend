@@ -22,6 +22,9 @@ describe('catalogue API contract', () => {
     async requireCustomer() { return actor; },
     async requireOwner() {
       throw new AppError(403, 'FORBIDDEN', 'This action is not permitted.');
+    },
+    async requireManagerOrOwner() {
+      throw new AppError(403, 'FORBIDDEN', 'This action is not permitted.');
     }
   };
   let quoteCalls = 0;

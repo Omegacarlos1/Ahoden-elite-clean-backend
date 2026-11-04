@@ -58,7 +58,7 @@ export function createApp({ environment, logger, databaseProbe, apiRouter }: App
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['authorization', 'content-type', 'idempotency-key', 'x-request-id', 'x-csrf-token'],
-      exposedHeaders: ['x-request-id']
+      exposedHeaders: ['x-request-id', 'idempotency-replayed']
     })
   );
   app.use(express.json({ limit: environment.bodyLimit, strict: true }));
