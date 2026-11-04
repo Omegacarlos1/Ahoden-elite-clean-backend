@@ -21,7 +21,7 @@
 | `npx postman spec lint openapi/openapi.yaml` | 0 | no specification issues; remote governance rules unavailable | local structural lint |
 | `npx postman collection lint postman/Ahoden_Backend.postman_collection.json` | 0 | no issues reported; legacy v2.1 collection | local structural lint |
 | `npx postman environment lint postman/Ahoden_Local.environment.json --fail-severity warning` | 0 | 1 scanned, 0 errors, 0 warnings | local structural lint |
-| live `postman collection run` for M01–M03 with `--no-report-events` | 0 | 15 requests, 27 assertions, 0 fail | compiled API + real MariaDB |
+| `npm run test:postman:m03-passed -- --env-var baseUrl=http://127.0.0.1:3001 --no-report-events` | 0 | 7 successful requests, 11 assertions, 0 fail; statuses only 200/201 | compiled API + real MariaDB |
 | `npm audit --omit=dev --audit-level=high` | 0 | 0 production vulnerabilities | npm registry |
 | full `npm audit --audit-level=high` after compatible fix | 1 | 13 moderate development-tool findings; high/runtime findings fixed | npm registry |
 | `git diff --check` | 0 | PASS | local |

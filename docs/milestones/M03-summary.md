@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | Owner-managed services, zones, hours, capacity, prices, and policies | Strict owner-authenticated M03 routes, transaction-scoped repository/service operations, and real-DB integration flow | PASS |
 | Public catalogue excludes inactive services | `GET /api/v1/services` integration assertion | PASS |
-| Inactive and out-of-zone services cannot produce quotes | `SERVICE_UNAVAILABLE` and `ADDRESS_OUT_OF_ZONE` integration/Postman assertions | PASS |
+| Inactive and out-of-zone services cannot produce quotes | `SERVICE_UNAVAILABLE` and `ADDRESS_OUT_OF_ZONE` real-database integration assertions | PASS |
 | Client amounts are not trusted | Strict quote schema rejects injected `totalMinor`; price, tax, currency, customer, and zone are server-owned | PASS |
 | GHS precision and explicit tax | Integer minor units, basis-point tax, bigint half-up calculation; unit and integration assertions | PASS |
 | Quote expiry and immutable snapshots | Server clock creates a 15-minute expiry; derived expired/bookable flags; DB triggers reject quote update/delete | PASS |
@@ -43,7 +43,7 @@ but intentionally not reserved until M04 quote-to-booking conversion.
 
 See `docs/milestones/M03-test-report.md`. Local lint, typecheck, build, 20 unit
 tests in the current workspace, 8 API tests, 22 real-MariaDB integration tests,
-OpenAPI/Postman lint, and 15-request/27-assertion live Postman smoke pass. GitHub
+OpenAPI/Postman lint, and a 7-request/11-assertion positive-only live Postman pass. GitHub
 Actions run 41837641969 passed the committed branch on a clean MySQL 8.4 service.
 
 ## Failures fixed and blocked checks
@@ -82,11 +82,13 @@ slot transactionally.
 
 ## Postman and manual checks
 
-The executable M01–M03 folders ran locally against the compiled API and isolated
-MariaDB: 15 requests, 27 assertions, 0 failures. M03 covers public catalogue,
-customer address creation, a server-calculated quote, rejected client amount, and
-out-of-zone rejection. No manual sample is claimed as automated evidence. The
-database-down M01 folder remains intentionally manual.
+The dedicated `test:postman:m03-passed` flow ran locally against the compiled API
+and isolated MariaDB: 7 requests, 11 assertions, 0 failures, with only 200/201
+responses. It uses successful M02 register/login setup, then lists services,
+creates and lists the customer address, creates the quote, and reads it back.
+Negative amount/zone cases remain covered by Mocha but are intentionally excluded
+from the operator-facing positive-only folder. The database-down M01 folder
+remains intentionally manual.
 
 ## Next milestone prompt
 
