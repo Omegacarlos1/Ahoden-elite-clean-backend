@@ -275,11 +275,14 @@ describe('service catalogue, quotes, and availability integration', () => {
     const response = await request(app).get('/api/v1/services');
 
     expect(response.status).to.equal(200);
-    const service = response.body.data.find((item: { id: string }) => item.id === serviceId);
-    expect(service).to.be.an('object');
-    expect(response.body.data.some((item: { id: string }) => item.id === inactiveServiceId)).to.equal(
-      false
-    );
+    const services = response.body.data as Array<{
+      id: string;
+      developmentOnly: boolean;
+      recurrence: Record<string, unknown>;
+    }>;
+    const service = services.find((item) => item.id === serviceId);
+    if (service === undefined) expect.fail('Expected the configured active service.');
+    expect(services.some((item) => item.id === inactiveServiceId)).to.equal(false);
     expect(service.developmentOnly).to.equal(true);
     expect(service.recurrence).to.deep.include({
       mode: 'recurring',
