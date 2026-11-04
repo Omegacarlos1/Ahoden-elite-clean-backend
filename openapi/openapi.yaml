@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Ahoden Elite Clean API
-  version: 0.3.0
-  description: M03 service catalogue, effective-dated pricing and policies, customer addresses, availability, and immutable server-calculated quotes.
+  version: 0.4.0
+  description: M04 quote-to-booking conversion, capacity reservations, customer history, policy-governed changes, cleaner availability, assignments, and explicit booking/job/payment states.
 servers:
   - url: http://127.0.0.1:3000
     description: Local XAMPP development
@@ -15,6 +15,8 @@ tags:
   - name: Policies
   - name: Addresses
   - name: Quotes
+  - name: Bookings
+  - name: Jobs
 paths:
   /health:
     get:
@@ -304,7 +306,7 @@ paths:
       tags: [Quotes]
       security: [{ bearerAuth: [] }]
       summary: Create an expiring, immutable, server-calculated quote.
-      description: Client amount, tax, currency, customer, or zone fields are rejected. Capacity is checked but not reserved until M04 booking conversion.
+      description: Client amount, tax, currency, customer, or zone fields are rejected. Capacity is checked here and reserved transactionally only during booking conversion.
       requestBody:
         required: true
         content:
@@ -342,6 +344,190 @@ paths:
       responses:
         '200': { description: Immutable quote snapshot and current expired/bookable flags }
         '404': { description: Missing or cross-customer quote }
+  /api/v1/bookings:
+    post:
+      tags: [Bookings]
+      security: [{ bearerAuth: [] }]
+      summary: Convert an owned, unexpired quote into one pending-payment booking.
+      description: Transactionally locks capacity and persists the idempotency key. M04 never accepts client booking/payment state and never marks payment paid.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBookingRequest' }
+            example: { quoteId: 40000000-0000-4000-8000-000000000099 }
+      responses:
+        '201':
+          description: Booking created, or the original result replayed for the same key and payload.
+          headers:
+            Idempotency-Replayed:
+              description: Present with value true when the original result is replayed.
+              schema: { type: string, const: 'true' }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties: { data: { $ref: '#/components/schemas/Booking' } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { description: Missing or cross-customer quote }
+        '409': { description: 'Quote expired/already used, idempotency conflict, or capacity unavailable' }
+    get:
+      tags: [Bookings]
+      security: [{ bearerAuth: [] }]
+      summary: List the authenticated customer's booking history.
+      parameters:
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        '200':
+          description: Customer-owned bookings only.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Booking' } }
+                  meta: { $ref: '#/components/schemas/PaginationMeta' }
+  /api/v1/bookings/{bookingId}:
+    get:
+      tags: [Bookings]
+      security: [{ bearerAuth: [] }]
+      summary: Read one owned booking; cross-customer access is concealed.
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Owned booking.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties: { data: { $ref: '#/components/schemas/Booking' } }
+        '404': { description: Missing or cross-customer booking }
+  /api/v1/bookings/{bookingId}/cancel:
+    post:
+      tags: [Bookings]
+      security: [{ bearerAuth: [] }]
+      summary: Cancel an owned unpaid booking within its snapshotted policy window.
+      description: Capacity release, booking/job state changes, and audit append occur in one transaction. Paid cancellation is deferred to M05 refund controls.
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties: { reason: { type: string, minLength: 3, maxLength: 255 } }
+      responses:
+        '200': { description: Cancelled booking and released reservation }
+        '404': { description: Missing or cross-customer booking }
+        '409': { description: 'Expired/terminal booking, closed policy window, or paid refund workflow required' }
+  /api/v1/bookings/{bookingId}/reschedule:
+    post:
+      tags: [Bookings]
+      security: [{ bearerAuth: [] }]
+      summary: Atomically move an owned booking to a new owned quote and capacity slot.
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [quoteId, reason]
+              properties:
+                quoteId: { type: string, format: uuid }
+                reason: { type: string, minLength: 3, maxLength: 255 }
+      responses:
+        '200': { description: Booking moved and reschedule history/audit appended }
+        '404': { description: Missing or cross-customer booking/quote }
+        '409': { description: 'Policy limit/window, quote, state, or target capacity conflict' }
+  /api/v1/cleaners/{cleanerId}/availability:
+    post:
+      tags: [Jobs]
+      security: [{ bearerAuth: [] }]
+      summary: Append an availability window for an active cleaner; manager or owner only.
+      parameters:
+        - in: path
+          name: cleanerId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCleanerAvailabilityRequest' }
+      responses:
+        '201': { description: Availability window created and audited }
+        '403': { description: Manager or owner role required }
+        '404': { description: Active cleaner not found }
+        '409': { description: Availability window overlaps existing data }
+  /api/v1/jobs/{jobId}/assignments:
+    post:
+      tags: [Jobs]
+      security: [{ bearerAuth: [] }]
+      summary: Assign or version-checked reassign available cleaners; manager or owner only.
+      description: Pending prepaid jobs return PAYMENT_REQUIRED. M04 has no approved-credit bypass and no API that marks payment paid.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignJobRequest' }
+            example: { cleanerIds: [71000000-0000-4000-8000-000000000011] }
+      responses:
+        '201': { description: Assignment created/replayed or reassignment audited }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: Manager or owner role required }
+        '404': { description: Job not found }
+        '409': { description: 'Payment, availability, overlap, idempotency, or version conflict' }
+  /api/v1/jobs/{jobId}:
+    get:
+      tags: [Jobs]
+      security: [{ bearerAuth: [] }]
+      summary: Read a job as manager/owner or as an actively assigned cleaner.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Authorized operational job fields.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties: { data: { $ref: '#/components/schemas/Job' } }
+        '403': { description: Role is not operational staff }
+        '404': { description: Missing job or concealed from an unassigned cleaner }
+  /api/v1/jobs/{jobId}/status:
+    patch:
+      tags: [Jobs]
+      security: [{ bearerAuth: [] }]
+      summary: Apply one permitted role-specific job transition using the current version.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JobTransitionRequest' }
+      responses:
+        '200': { description: Job transition and audit committed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { description: Missing or concealed job }
+        '409': { description: 'Payment, state-transition, or optimistic-version conflict' }
 components:
   securitySchemes:
     bearerAuth:
@@ -365,6 +551,22 @@ components:
       name: serviceId
       required: true
       schema: { type: string, format: uuid }
+    BookingId:
+      in: path
+      name: bookingId
+      required: true
+      schema: { type: string, format: uuid }
+    JobId:
+      in: path
+      name: jobId
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: Caller-generated key. Reuse is allowed only with the identical authenticated operation and payload.
+      schema: { type: string, minLength: 8, maxLength: 200, pattern: '^[A-Za-z0-9._:-]+$' }
   schemas:
     Credentials:
       type: object
@@ -555,6 +757,100 @@ components:
         pricing: { type: object }
         policies: { type: object }
         recurringBillingCreated: { type: boolean, const: false }
+    CreateBookingRequest:
+      type: object
+      additionalProperties: false
+      required: [quoteId]
+      properties:
+        quoteId: { type: string, format: uuid }
+    Booking:
+      type: object
+      required: [id, initialQuoteId, quoteId, status, paymentStatus, startsAt, startsAtBusinessTime, rescheduleCount, reservation, currency, subtotalMinor, tax, totalMinor, service, address, pricing, policies, job, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        initialQuoteId: { type: string, format: uuid }
+        quoteId: { type: string, format: uuid }
+        status: { type: string, enum: [pending_payment, confirmed, cancelled, expired, completed] }
+        paymentStatus: { type: string, enum: [pending, paid, failed, refunded] }
+        startsAt: { type: string, format: date-time }
+        startsAtBusinessTime: { type: string, example: '2099-01-02T09:00:00[Africa/Accra]' }
+        rescheduleCount: { type: integer, minimum: 0 }
+        reservation:
+          type: object
+          required: [state, expiresAt]
+          properties:
+            state: { type: string, enum: [held, released, confirmed, consumed] }
+            expiresAt: { type: [string, 'null'], format: date-time }
+        currency: { type: string, const: GHS }
+        subtotalMinor: { type: integer }
+        tax: { type: object }
+        totalMinor: { type: integer }
+        service: { type: object }
+        address: { type: object }
+        pricing: { type: object }
+        policies: { type: object }
+        job:
+          type: object
+          required: [id, state, version]
+          properties:
+            id: { type: string, format: uuid }
+            state: { $ref: '#/components/schemas/JobState' }
+            version: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreateCleanerAvailabilityRequest:
+      type: object
+      additionalProperties: false
+      required: [startsAt, endsAt, status, reason]
+      properties:
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        status: { type: string, enum: [available, unavailable] }
+        reason: { type: string, minLength: 3, maxLength: 255 }
+    AssignJobRequest:
+      type: object
+      additionalProperties: false
+      required: [cleanerIds]
+      properties:
+        cleanerIds:
+          type: array
+          minItems: 1
+          maxItems: 20
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        expectedVersion:
+          type: integer
+          minimum: 0
+          description: Required when replacing an existing assignment.
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 255
+          description: Required when replacing an existing assignment.
+    JobTransitionRequest:
+      type: object
+      additionalProperties: false
+      required: [state, expectedVersion]
+      properties:
+        state: { type: string, enum: [assigned, en_route, started, completed, delayed, exception] }
+        expectedVersion: { type: integer, minimum: 0 }
+        reason: { type: string, minLength: 3, maxLength: 255 }
+    JobState:
+      type: string
+      enum: [awaiting_payment, unassigned, assigned, en_route, started, completed, delayed, exception, cancelled]
+    Job:
+      type: object
+      required: [id, bookingId, state, version, startsAt, endsAt, bookingStatus, paymentStatus, cleanerIds]
+      properties:
+        id: { type: string, format: uuid }
+        bookingId: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/JobState' }
+        version: { type: integer, minimum: 0 }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        bookingStatus: { type: string }
+        paymentStatus: { type: string }
+        cleanerIds: { type: array, items: { type: string, format: uuid } }
     Health:
       type: object
       additionalProperties: false

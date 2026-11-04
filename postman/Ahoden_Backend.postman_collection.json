@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "ace10000-0000-4000-8000-000000000001",
     "name": "Ahoden Elite Clean Backend",
-    "description": "Executable requests are added milestone by milestone. M03 uses conspicuously labelled nonproduction catalogue fixtures and server-calculated GHS amounts.",
+    "description": "Executable requests are added milestone by milestone. M04 converts immutable quotes into idempotent capacity reservations while keeping prepaid bookings pending payment.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -262,6 +262,228 @@
             ],
             "url": "{{baseUrl}}/api/v1/quotes/{{m03QuoteId}}",
             "description": "Read the logged-in customer's immutable quote; expected 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "M04 Bookings - Automated",
+      "description": "Run M02 login and the complete M03 folder first. These requests verify successful pending-payment booking creation plus safe validation, authorization, replay, history, and cancellation responses.",
+      "item": [
+        {
+          "name": "Create pending-payment booking - 201",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('m04BookingKey', `m04-booking-${Date.now()}-${Math.random().toString(16).slice(2)}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('prepaid booking remains pending', () => { const booking = pm.response.json().data; pm.expect(booking.status).to.eql('pending_payment'); pm.expect(booking.paymentStatus).to.eql('pending'); pm.expect(booking.job.state).to.eql('awaiting_payment'); });",
+                  "const booking = pm.response.json().data; pm.collectionVariables.set('m04BookingId', booking.id); pm.collectionVariables.set('m04JobId', booking.job.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Idempotency-Key", "value": "{{m04BookingKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"quoteId\":\"{{m03QuoteId}}\"}" },
+            "url": "{{baseUrl}}/api/v1/bookings",
+            "description": "Customer converts the current quote once. Capacity is held but booking/payment/job remain pending until M05 verifies payment."
+          }
+        },
+        {
+          "name": "Replay booking idempotently - 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('same booking is replayed', () => { pm.expect(pm.response.headers.get('Idempotency-Replayed')).to.eql('true'); pm.expect(pm.response.json().data.id).to.eql(pm.collectionVariables.get('m04BookingId')); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Idempotency-Key", "value": "{{m04BookingKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"quoteId\":\"{{m03QuoteId}}\"}" },
+            "url": "{{baseUrl}}/api/v1/bookings"
+          }
+        },
+        {
+          "name": "Get own booking - 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('own booking is returned', () => pm.expect(pm.response.json().data.id).to.eql(pm.collectionVariables.get('m04BookingId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{m02AccessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/bookings/{{m04BookingId}}"
+          }
+        },
+        {
+          "name": "List booking history - 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('history contains booking', () => pm.expect(pm.response.json().data.map((item) => item.id)).to.include(pm.collectionVariables.get('m04BookingId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{m02AccessToken}}" }],
+            "url": "{{baseUrl}}/api/v1/bookings?page=1&pageSize=25"
+          }
+        },
+        {
+          "name": "Reject client payment state - 400",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('m04InjectionKey', `m04-injection-${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('state injection is rejected', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Idempotency-Key", "value": "{{m04InjectionKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"quoteId\":\"{{m03QuoteId}}\",\"paymentStatus\":\"paid\"}" },
+            "url": "{{baseUrl}}/api/v1/bookings"
+          }
+        },
+        {
+          "name": "Customer cannot assign job - 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('manager role is enforced', () => pm.expect(pm.response.json().error.code).to.eql('FORBIDDEN'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Idempotency-Key", "value": "m04-customer-assignment" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"cleanerIds\":[\"71000000-0000-4000-8000-000000000011\"]}" },
+            "url": "{{baseUrl}}/api/v1/jobs/{{m04JobId}}/assignments"
+          }
+        },
+        {
+          "name": "Cancel pending booking - 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('booking is cancelled', () => { const booking = pm.response.json().data; pm.expect(booking.status).to.eql('cancelled'); pm.expect(booking.reservation.state).to.eql('released'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"reason\":\"Postman M04 cancellation check\"}" },
+            "url": "{{baseUrl}}/api/v1/bookings/{{m04BookingId}}/cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "M04 Manual manager assignment",
+      "description": "Manual sample excluded from automated smoke because M04 has no API that can mark payment successful. Supply a manager token, active available cleaner ID, and a paid fixture job produced by a controlled test/M05 flow.",
+      "item": [
+        {
+          "name": "Assign paid job - 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('cleaner is assigned', () => pm.expect(pm.response.json().data.cleanerIds).to.include(pm.environment.get('m04CleanerId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m04ManagerAccessToken}}" },
+              { "key": "Idempotency-Key", "value": "m04-manual-assignment-001" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"cleanerIds\":[\"{{m04CleanerId}}\"]}" },
+            "url": "{{baseUrl}}/api/v1/jobs/{{m04PaidJobId}}/assignments",
+            "description": "Role: manager; expected 201 only for a confirmed booking with verified paid state and an available cleaner."
           }
         }
       ]
