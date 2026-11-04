@@ -23,6 +23,7 @@
     "test:postman:m03-passed": "postman collection run postman/Ahoden_Backend.postman_collection.json -e postman/Ahoden_Local.environment.json -i \"Register customer - 201\" -i \"Login customer - 200\" -i \"M03 Catalogue and Quotes - Passed Only\"",
     "db:migrate": "npm run build --silent && node dist/scripts/database/migrate.js",
     "db:rollback": "npm run build --silent && node dist/scripts/database/rollback.js",
+    "db:seed:dev": "npm run build --silent && node dist/scripts/database/seed-development.js",
     "db:seed:test": "npm run build --silent && node --env-file-if-exists=.env.test.local dist/scripts/database/seed-test.js",
     "db:test:reset": "npm run build --silent && node --env-file-if-exists=.env.test.local dist/scripts/database/reset-test.js"
   },

@@ -33,6 +33,22 @@ The checked-in stable variables are:
 | `m03AddressId` | Collection/runtime | Address ID captured after creation |
 | `m03QuoteId` | Collection/runtime | Quote ID captured after creation |
 
+## Port 3000 setup
+
+Port `3000` uses the local development database, so seed the labelled M03 fixture
+there before starting the server:
+
+```powershell
+npm run db:migrate
+npm run db:seed:dev
+npm run dev
+```
+
+The seed command is idempotent and prints the exact `m03ServiceId` and
+`m03StartsAt`. It refuses to run unless `NODE_ENV=development`, the database name
+ends with `_dev`, and the host is explicitly allowed. It does not delete or reset
+development data.
+
 ## Run order
 
 Run these two successful M02 setup requests first:
@@ -120,3 +136,9 @@ npm run test:postman:m03-passed -- --env-var baseUrl=http://127.0.0.1:3001 --no-
 
 Verified result on 4 November 2026: 7 requests, 11 assertions, 0 failures; every
 HTTP response was `200` or `201`.
+
+For the normal development API listening on port 3000, run:
+
+```powershell
+npm run test:postman:m03-passed -- --env-var baseUrl=http://127.0.0.1:3000 --no-report-events
+```

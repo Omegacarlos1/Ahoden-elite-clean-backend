@@ -41,6 +41,12 @@ idempotently inserts conspicuously labelled M03 Postman records with fixed UUIDs
 The fixture owner is disabled and cannot log in. The XAMPP setup script also creates
 ignored authentication secrets.
 
+For manual Postman checks against the development API on port `3000`, run
+`npm run db:seed:dev` after migrations. This command idempotently inserts only the
+labelled M03 fixture records; it does not delete or reset development data. It is
+guarded to `NODE_ENV=development`, an explicitly allowed host, and a database name
+ending in `_dev`, and it rejects a target matching `PRODUCTION_DATABASE_URL`.
+
 MySQL servers with binary logging require a database administrator to enable
 `log_bin_trust_function_creators` for the reviewed migration account (or to
 install the triggers using an appropriately controlled administrative process).
