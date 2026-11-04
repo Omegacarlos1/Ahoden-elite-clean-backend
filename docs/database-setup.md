@@ -36,6 +36,15 @@ behavior so MariaDB cannot silently apply `ON UPDATE CURRENT_TIMESTAMP` to slot
 boundaries. Quote triggers reject every `UPDATE` and `DELETE`; M04 must reference
 quotes instead of mutating their snapshots.
 
+M04 adds scoped API idempotency records, bookings, quote-use history, capacity
+reservations, jobs, cleaner availability, append-only assignment history and
+reschedule history. Booking and assignment transactions use row locks on capacity
+slots, jobs and cleaner user rows; overlap checks use locking reads so concurrent
+transactions observe the latest committed assignment. No-delete triggers protect
+the new operational/history records. Apply this append-only migration with
+`npm run db:migrate`; after application, schema changes require a reviewed
+forward-fix migration rather than editing migration 004.
+
 Test seeding deletes and recreates only the `test.fixture` metadata namespace and
 idempotently inserts conspicuously labelled M03 Postman records with fixed UUIDs.
 The fixture owner is disabled and cannot log in. The XAMPP setup script also creates

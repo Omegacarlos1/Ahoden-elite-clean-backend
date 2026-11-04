@@ -1,9 +1,9 @@
 # Ahoden Elite Clean backend
 
-Modular Node.js/Express API for Ahoden Elite Clean. M03 adds an owner-managed
-service catalogue, effective-dated GHS prices and policies, exact service zones,
-Africa/Accra business hours, UTC capacity slots, customer-owned addresses, and
-expiring immutable quote snapshots to the M01/M02 platform and identity foundation.
+Modular Node.js/Express API for Ahoden Elite Clean. M04 adds idempotent
+quote-to-booking conversion, transactional capacity reservations, customer booking
+history, policy-governed cancellation/rescheduling, cleaner availability, and
+concurrency-safe job assignment to the M01–M03 platform.
 
 ## Requirements
 
@@ -50,6 +50,12 @@ expiring immutable quote snapshots to the M01/M02 platform and identity foundati
    and supplies a recorded approval reference. Quotes expire after
    `QUOTE_TTL_SECONDS` (900 seconds by default).
 
+   M04 capacity holds expire after `BOOKING_RESERVATION_TTL_SECONDS` (900 seconds
+   by default). Customer-created prepaid bookings remain `pending_payment`; M04
+   exposes no route that can mark them paid. Manager assignment requires a
+   confirmed booking with verified paid state, which M05 will establish through
+   provider verification. There is no approved-credit bypass.
+
 ## Verification
 
 ```powershell
@@ -82,6 +88,8 @@ fixtures. Never point local environment files at production.
 - UTC instants are rendered for operations as `Africa/Accra` business time.
   Recurring services carry schedule and per-occurrence-upfront policy snapshots;
   M03 intentionally creates no recurring billing engine.
+- Booking creation and job assignment require `Idempotency-Key`. Booking, job,
+  and payment states remain separate, and state/version conflicts return `409`.
 
 See [database setup](docs/database-setup.md), [OpenAPI](openapi/openapi.yaml), and
 [architecture decisions](docs/architecture/ADR-001-runtime-and-data-access.md) and
