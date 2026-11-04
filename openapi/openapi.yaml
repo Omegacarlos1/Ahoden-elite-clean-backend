@@ -1,13 +1,15 @@
 openapi: 3.1.0
 info:
   title: Ahoden Elite Clean API
-  version: 0.1.0
-  description: M01 platform probes and shared API conventions.
+  version: 0.2.0
+  description: M02 authentication, permissions and audit foundation.
 servers:
   - url: http://127.0.0.1:3000
     description: Local XAMPP development
 tags:
   - name: System
+  - name: Authentication
+  - name: Users
 paths:
   /health:
     get:
@@ -67,13 +69,116 @@ paths:
                   code: DATABASE_UNAVAILABLE
                   message: Database is unavailable.
                 requestId: 0199f59e-1111-7000-8000-000000000001
+  /api/v1/auth/register:
+    post:
+      tags: [Authentication]
+      security: []
+      summary: Register a customer account; role and status fields are rejected.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201': { description: Customer created }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { description: Email already registered }
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      security: []
+      summary: Authenticate; owner/admin receive an MFA challenge before a session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Credentials' }
+      responses:
+        '200': { description: Access token or MFA challenge issued }
+        '401': { description: Generic invalid credentials response }
+        '429': { description: Rate limited }
+  /api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      security: []
+      summary: Rotate the HttpOnly refresh cookie; requires matching x-csrf-token.
+      parameters:
+        - in: header
+          name: x-csrf-token
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Rotated session and short-lived access token }
+        '401': { description: Invalid, expired, revoked, or reused refresh session }
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      security: [{ bearerAuth: [] }]
+      summary: Read the authenticated user's allowed profile fields.
+      responses:
+        '200': { description: Current user }
+        '401': { description: Missing, invalid, disabled, or stale-role token }
+  /api/v1/auth/password-reset/request:
+    post:
+      tags: [Authentication]
+      security: []
+      summary: Request a reset with an enumeration-safe response.
+      responses:
+        '202': { description: Generic accepted response }
+  /api/v1/staff/invitations:
+    post:
+      tags: [Users]
+      security: [{ bearerAuth: [] }]
+      summary: Invite cleaner, manager, or admin; owner only.
+      responses:
+        '201': { description: Invitation recorded and local delivery adapter called }
+        '403': { description: Owner role required }
+  /api/v1/users/{id}:
+    get:
+      tags: [Users]
+      security: [{ bearerAuth: [] }]
+      summary: Read self, or any account as owner; cross-customer access is concealed.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Allowed user fields }
+        '404': { description: Missing or concealed resource }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
   headers:
     RequestId:
       description: Caller-supplied safe request ID or a server-generated UUID.
       schema:
         type: string
   schemas:
+    Credentials:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 12, maxLength: 128, format: password }
+    RegisterRequest:
+      allOf:
+        - $ref: '#/components/schemas/Credentials'
+        - type: object
+          additionalProperties: false
+          required: [displayName]
+          properties:
+            displayName: { type: string, minLength: 2, maxLength: 120 }
     Health:
       type: object
       additionalProperties: false

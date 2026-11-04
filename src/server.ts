@@ -8,6 +8,7 @@ import {
 } from './config/environment.js';
 import { createDatabase, createDatabaseProbe } from './database/connection.js';
 import { createLogger } from './logging/logger.js';
+import { createAuthRouter } from './modules/auth/auth.routes.js';
 
 function start(): void {
   loadDotenvFiles();
@@ -17,7 +18,8 @@ function start(): void {
   const app = createApp({
     environment,
     logger,
-    databaseProbe: createDatabaseProbe(database)
+    databaseProbe: createDatabaseProbe(database),
+    apiRouter: createAuthRouter(database, environment)
   });
   const server = createServer(app);
 

@@ -22,6 +22,14 @@ function New-LocalPassword {
     return [Convert]::ToBase64String($bytes).Replace('+', '-').Replace('/', '_').TrimEnd('=')
 }
 
+function New-Base64Key {
+    $bytes = New-Object byte[] 32
+    $generator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $generator.GetBytes($bytes) }
+    finally { $generator.Dispose() }
+    return [Convert]::ToBase64String($bytes)
+}
+
 $rootCredential = $null
 if (-not $UseBlankRootPassword) {
     $rootCredential = Read-Host 'Enter the local XAMPP MariaDB root password' -AsSecureString
@@ -31,6 +39,9 @@ $devMigrationPassword = New-LocalPassword
 $devRuntimePassword = New-LocalPassword
 $testMigrationPassword = New-LocalPassword
 $testRuntimePassword = New-LocalPassword
+$accessTokenSecret = New-LocalPassword
+$mfaEncryptionKey = New-Base64Key
+$ownerBootstrapToken = New-LocalPassword
 
 $accounts = @(
     @{ User = 'ahoden_dev_migrator'; Password = $devMigrationPassword; Database = 'ahoden_elite_clean_dev'; Grants = 'ALL PRIVILEGES' },
@@ -91,6 +102,11 @@ MIGRATION_DATABASE_URL=mysql://ahoden_dev_migrator:$devMigrationPassword@127.0.0
 CORS_ORIGINS=http://localhost:5173
 TRUST_PROXY=false
 BODY_LIMIT=100kb
+ACCESS_TOKEN_SECRET=$accessTokenSecret
+MFA_ENCRYPTION_KEY=$mfaEncryptionKey
+OWNER_BOOTSTRAP_TOKEN=$ownerBootstrapToken
+ACCESS_TOKEN_TTL_SECONDS=900
+REFRESH_TOKEN_TTL_DAYS=30
 "@
 
 $testEnvironment = @"
@@ -105,6 +121,11 @@ TRUST_PROXY=false
 BODY_LIMIT=100kb
 ALLOW_TEST_DATABASE_RESET=true
 TEST_DATABASE_ALLOWED_HOSTS=127.0.0.1,localhost,mysql
+ACCESS_TOKEN_SECRET=$accessTokenSecret
+MFA_ENCRYPTION_KEY=$mfaEncryptionKey
+OWNER_BOOTSTRAP_TOKEN=$ownerBootstrapToken
+ACCESS_TOKEN_TTL_SECONDS=900
+REFRESH_TOKEN_TTL_DAYS=30
 "@
 
 $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)

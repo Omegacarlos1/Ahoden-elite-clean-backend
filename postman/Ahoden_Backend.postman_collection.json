@@ -106,6 +106,37 @@
       ]
     },
     {
+      "name": "M02 Authentication",
+      "description": "Automated customer registration/login/me flow plus negative field-injection and invalid-login cases. Uses a run-unique email.",
+      "item": [
+        {
+          "name": "Register customer - 201",
+          "event": [{"listen":"prerequest","script":{"type":"text/javascript","exec":["if (!pm.collectionVariables.get('m02Email')) pm.collectionVariables.set('m02Email', `postman-${Date.now()}@example.test`);"]}},{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('status is 201', () => pm.response.to.have.status(201));","const json=pm.response.json(); pm.expect(json.user.role).to.eql('customer'); pm.collectionVariables.set('m02UserId', json.user.id);"]}}],
+          "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"email\":\"{{m02Email}}\",\"displayName\":\"Postman Customer\",\"password\":\"Postman password 1!\"}"},"url":"{{baseUrl}}/api/v1/auth/register"}
+        },
+        {
+          "name": "Reject role injection - 400",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('status is 400', () => pm.response.to.have.status(400));","pm.test('validation envelope', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));"]}}],
+          "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"email\":\"injection@example.test\",\"displayName\":\"Injected\",\"password\":\"Postman password 1!\",\"role\":\"owner\"}"},"url":"{{baseUrl}}/api/v1/auth/register"}
+        },
+        {
+          "name": "Invalid login is generic - 401",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('status is 401', () => pm.response.to.have.status(401));","pm.test('generic message', () => pm.expect(pm.response.json().error.message).to.eql('Email or password is invalid.'));"]}}],
+          "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"email\":\"{{m02Email}}\",\"password\":\"Wrong password!\"}"},"url":"{{baseUrl}}/api/v1/auth/login"}
+        },
+        {
+          "name": "Login customer - 200",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('status is 200', () => pm.response.to.have.status(200));","pm.collectionVariables.set('m02AccessToken', pm.response.json().accessToken);"]}}],
+          "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"email\":\"{{m02Email}}\",\"password\":\"Postman password 1!\"}"},"url":"{{baseUrl}}/api/v1/auth/login"}
+        },
+        {
+          "name": "Current user - 200",
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('status is 200', () => pm.response.to.have.status(200));","pm.test('same customer', () => pm.expect(pm.response.json().user.id).to.eql(pm.collectionVariables.get('m02UserId')));"]}}],
+          "request": {"method":"GET","header":[{"key":"Authorization","value":"Bearer {{m02AccessToken}}"}],"url":"{{baseUrl}}/api/v1/auth/me"}
+        }
+      ]
+    },
+    {
       "name": "M01 Manual dependency failure",
       "description": "Stop only the local XAMPP MySQL service, start the API, then run this folder. This is intentionally excluded from the automated smoke folder.",
       "item": [

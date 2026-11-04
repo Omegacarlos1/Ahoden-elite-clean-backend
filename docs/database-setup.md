@@ -25,9 +25,18 @@ database. Production and staging are not provisioned by this repository.
   lock/table-copy behavior against the exact MySQL version and dataset, and stage
   the same upgrade path.
 
-The first migration creates `system_metadata` with a namespaced unique key and a
-JSON value. Test seeding deletes and recreates only the `test.fixture` namespace
-inside a transaction.
+The first migration creates `system_metadata`. M02 adds users, sessions, reset
+tokens, staff invitations, MFA recovery codes, the one-time owner-bootstrap
+record, and audit events. The migration installs triggers that reject every
+`UPDATE` and `DELETE` against `audit_events`; corrections must be appended.
+Test seeding deletes and recreates only the `test.fixture` namespace inside a
+transaction. The XAMPP setup script also creates ignored authentication secrets.
+
+MySQL servers with binary logging require a database administrator to enable
+`log_bin_trust_function_creators` for the reviewed migration account (or to
+install the triggers using an appropriately controlled administrative process).
+The runtime account is never granted `SUPER`; CI enables the setting only on its
+ephemeral MySQL 8.4 service before applying migrations.
 
 ## MariaDB local vs production MySQL
 

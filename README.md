@@ -1,8 +1,8 @@
 # Ahoden Elite Clean backend
 
-Modular Node.js/Express API for Ahoden Elite Clean. M01 supplies the TypeScript,
-database, observability, API-contract, and verification foundation. Business APIs
-start in later milestones.
+Modular Node.js/Express API for Ahoden Elite Clean. M02 adds customer and staff
+identity, owner bootstrap, MFA, rotating sessions, authorization, and immutable
+audit events to the M01 platform foundation.
 
 ## Requirements
 
@@ -71,5 +71,6 @@ fixtures. Never point local environment files at production.
   credentials, tokens, cookies, and authorization headers redacted.
 
 See [database setup](docs/database-setup.md), [OpenAPI](openapi/openapi.yaml), and
-[architecture decisions](docs/architecture/ADR-001-runtime-and-data-access.md).
+[architecture decisions](docs/architecture/ADR-001-runtime-and-data-access.md) and
+[authentication ADR](docs/architecture/ADR-002-authentication-and-session-security.md).
 

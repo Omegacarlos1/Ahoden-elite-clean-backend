@@ -16,7 +16,10 @@ const validEnvironment = {
   CORS_ORIGINS: 'http://localhost:5173',
   TRUST_PROXY: 'false',
   BODY_LIMIT: '100kb',
-  ALLOW_TEST_DATABASE_RESET: 'true'
+  ALLOW_TEST_DATABASE_RESET: 'true',
+  ACCESS_TOKEN_SECRET: 'test-only-access-token-secret-32-bytes-minimum',
+  MFA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+  OWNER_BOOTSTRAP_TOKEN: 'test-only-owner-bootstrap-token'
 } satisfies NodeJS.ProcessEnv;
 
 describe('environment configuration', () => {

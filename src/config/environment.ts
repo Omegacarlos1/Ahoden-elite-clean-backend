@@ -16,7 +16,14 @@ const environmentSchema = z
     BODY_LIMIT: z.string().regex(/^\d+(?:b|kb|mb)$/i).default('100kb'),
     ALLOW_TEST_DATABASE_RESET: z.enum(['true', 'false']).optional(),
     TEST_DATABASE_ALLOWED_HOSTS: z.string().optional(),
-    PRODUCTION_DATABASE_URL: z.string().optional()
+    PRODUCTION_DATABASE_URL: z.string().optional(),
+    ACCESS_TOKEN_SECRET: z.string().min(32),
+    MFA_ENCRYPTION_KEY: z.string().refine((value) => {
+      try { return Buffer.from(value, 'base64').length === 32; } catch { return false; }
+    }, 'must be a base64-encoded 32-byte key'),
+    OWNER_BOOTSTRAP_TOKEN: z.string().min(24),
+    ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30)
   })
   .superRefine((value, context) => {
     for (const [field, candidate] of [
@@ -65,6 +72,11 @@ export interface Environment {
   allowTestDatabaseReset: boolean;
   testDatabaseAllowedHosts: string[];
   productionDatabaseUrl?: string;
+  accessTokenSecret: string;
+  mfaEncryptionKey: string;
+  ownerBootstrapToken: string;
+  accessTokenTtlSeconds: number;
+  refreshTokenTtlDays: number;
 }
 
 export class ConfigurationError extends Error {
@@ -113,7 +125,12 @@ export function loadEnvironment(source: NodeJS.ProcessEnv = process.env): Enviro
       .filter(Boolean),
     ...(parsed.PRODUCTION_DATABASE_URL === undefined
       ? {}
-      : { productionDatabaseUrl: parsed.PRODUCTION_DATABASE_URL })
+      : { productionDatabaseUrl: parsed.PRODUCTION_DATABASE_URL }),
+    accessTokenSecret: parsed.ACCESS_TOKEN_SECRET,
+    mfaEncryptionKey: parsed.MFA_ENCRYPTION_KEY,
+    ownerBootstrapToken: parsed.OWNER_BOOTSTRAP_TOKEN,
+    accessTokenTtlSeconds: parsed.ACCESS_TOKEN_TTL_SECONDS,
+    refreshTokenTtlDays: parsed.REFRESH_TOKEN_TTL_DAYS
   };
 }
 

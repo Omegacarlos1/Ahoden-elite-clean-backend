@@ -1,5 +1,5 @@
 import cors from 'cors';
-import express, { type Express } from 'express';
+import express, { type Express, type Router } from 'express';
 import helmet from 'helmet';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Logger } from 'pino';
@@ -15,9 +15,10 @@ export interface ApplicationDependencies {
   environment: Environment;
   logger: Logger;
   databaseProbe: DatabaseProbe;
+  apiRouter?: Router;
 }
 
-export function createApp({ environment, logger, databaseProbe }: ApplicationDependencies): Express {
+export function createApp({ environment, logger, databaseProbe, apiRouter }: ApplicationDependencies): Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -56,13 +57,14 @@ export function createApp({ environment, logger, databaseProbe }: ApplicationDep
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['authorization', 'content-type', 'idempotency-key', 'x-request-id'],
+      allowedHeaders: ['authorization', 'content-type', 'idempotency-key', 'x-request-id', 'x-csrf-token'],
       exposedHeaders: ['x-request-id']
     })
   );
   app.use(express.json({ limit: environment.bodyLimit, strict: true }));
 
   app.use(createSystemRouter(databaseProbe));
+  if (apiRouter !== undefined) app.use('/api/v1', apiRouter);
   app.use(notFoundHandler);
   app.use(errorHandler);
 
