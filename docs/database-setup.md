@@ -29,8 +29,17 @@ The first migration creates `system_metadata`. M02 adds users, sessions, reset
 tokens, staff invitations, MFA recovery codes, the one-time owner-bootstrap
 record, and audit events. The migration installs triggers that reject every
 `UPDATE` and `DELETE` against `audit_events`; corrections must be appended.
-Test seeding deletes and recreates only the `test.fixture` namespace inside a
-transaction. The XAMPP setup script also creates ignored authentication secrets.
+M03 adds services, append-only price and policy versions, exact zones/localities,
+business hours, capacity slots, customer addresses, and immutable quote snapshots.
+M03 business instants use UTC `DATETIME` columns rather than implicit `TIMESTAMP`
+behavior so MariaDB cannot silently apply `ON UPDATE CURRENT_TIMESTAMP` to slot
+boundaries. Quote triggers reject every `UPDATE` and `DELETE`; M04 must reference
+quotes instead of mutating their snapshots.
+
+Test seeding deletes and recreates only the `test.fixture` metadata namespace and
+idempotently inserts conspicuously labelled M03 Postman records with fixed UUIDs.
+The fixture owner is disabled and cannot log in. The XAMPP setup script also creates
+ignored authentication secrets.
 
 MySQL servers with binary logging require a database administrator to enable
 `log_bin_trust_function_creators` for the reviewed migration account (or to
@@ -55,6 +64,8 @@ proof:
 - DDL, generated columns, check constraints, optimizer behavior, and locking can
   diverge. New migrations and concurrency-sensitive repositories require MySQL
   8.4 verification even when MariaDB passes.
+- MySQL-compatible engines cap identifiers at 64 characters. M03 uses explicit
+  short names for composite indexes rather than Knex-generated long names.
 - XAMPP is local tooling only. It provides no evidence for managed MySQL TLS,
   backup/restore, monitoring, failover, or production performance.
 

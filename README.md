@@ -1,8 +1,9 @@
 # Ahoden Elite Clean backend
 
-Modular Node.js/Express API for Ahoden Elite Clean. M02 adds customer and staff
-identity, owner bootstrap, MFA, rotating sessions, authorization, and immutable
-audit events to the M01 platform foundation.
+Modular Node.js/Express API for Ahoden Elite Clean. M03 adds an owner-managed
+service catalogue, effective-dated GHS prices and policies, exact service zones,
+Africa/Accra business hours, UTC capacity slots, customer-owned addresses, and
+expiring immutable quote snapshots to the M01/M02 platform and identity foundation.
 
 ## Requirements
 
@@ -42,6 +43,13 @@ audit events to the M01 platform foundation.
    `GET http://127.0.0.1:3000/health` checks the process; `GET /ready` also checks
    database connectivity.
 
+   M03 development catalogue data must set `developmentOnly: true`. Final prices,
+   taxes, zones, hours, capacity, and policies are unresolved and cannot be
+   activated for production while `CATALOGUE_PRODUCTION_ACTIVATION_ENABLED=false`.
+   Keep that gate disabled until the client owner approves the launch configuration
+   and supplies a recorded approval reference. Quotes expire after
+   `QUOTE_TTL_SECONDS` (900 seconds by default).
+
 ## Verification
 
 ```powershell
@@ -69,6 +77,11 @@ fixtures. Never point local environment files at production.
 - Pagination uses one-based `page`, defaults `pageSize` to 25, and caps it at 100.
 - Request IDs are returned in `x-request-id`. Logs are structured JSON with
   credentials, tokens, cookies, and authorization headers redacted.
+- Money uses integer GHS minor units and explicit tax basis points/amounts. Quote
+  request bodies cannot supply amounts, tax, currency, customer IDs, or zone IDs.
+- UTC instants are rendered for operations as `Africa/Accra` business time.
+  Recurring services carry schedule and per-occurrence-upfront policy snapshots;
+  M03 intentionally creates no recurring billing engine.
 
 See [database setup](docs/database-setup.md), [OpenAPI](openapi/openapi.yaml), and
 [architecture decisions](docs/architecture/ADR-001-runtime-and-data-access.md) and

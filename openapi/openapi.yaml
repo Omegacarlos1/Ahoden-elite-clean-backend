@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Ahoden Elite Clean API
-  version: 0.2.0
-  description: M02 authentication, permissions and audit foundation.
+  version: 0.3.0
+  description: M03 service catalogue, effective-dated pricing and policies, customer addresses, availability, and immutable server-calculated quotes.
 servers:
   - url: http://127.0.0.1:3000
     description: Local XAMPP development
@@ -10,6 +10,11 @@ tags:
   - name: System
   - name: Authentication
   - name: Users
+  - name: Catalogue
+  - name: Availability
+  - name: Policies
+  - name: Addresses
+  - name: Quotes
 paths:
   /health:
     get:
@@ -109,7 +114,7 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: Rotated session and short-lived access token }
-        '401': { description: Invalid, expired, revoked, or reused refresh session }
+        '401': { description: 'Invalid, expired, revoked, or reused refresh session' }
   /api/v1/auth/me:
     get:
       tags: [Authentication]
@@ -117,7 +122,7 @@ paths:
       summary: Read the authenticated user's allowed profile fields.
       responses:
         '200': { description: Current user }
-        '401': { description: Missing, invalid, disabled, or stale-role token }
+        '401': { description: 'Missing, invalid, disabled, or stale-role token' }
   /api/v1/auth/password-reset/request:
     post:
       tags: [Authentication]
@@ -146,6 +151,197 @@ paths:
       responses:
         '200': { description: Allowed user fields }
         '404': { description: Missing or concealed resource }
+  /api/v1/services:
+    get:
+      tags: [Catalogue]
+      security: []
+      summary: List active services with current indicative GHS pricing.
+      responses:
+        '200':
+          description: Active services; production excludes development-only records.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Service' }
+    post:
+      tags: [Catalogue]
+      security: [{ bearerAuth: [] }]
+      summary: Create a service; owner only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateServiceRequest' }
+      responses:
+        '201': { description: Service created }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: Owner role required }
+        '409': { description: Production activation is disabled pending explicit business approval }
+  /api/v1/services/{serviceId}:
+    patch:
+      tags: [Catalogue]
+      security: [{ bearerAuth: [] }]
+      summary: Change service presentation or status; owner only and audited.
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 120 }
+                description: { type: string, minLength: 10, maxLength: 1000 }
+                status: { type: string, enum: [draft, active, inactive] }
+                reason: { type: string, minLength: 3, maxLength: 255 }
+      responses:
+        '204': { description: Service changed and audit event appended }
+        '403': { description: Owner role required }
+        '404': { description: Service not found }
+  /api/v1/services/{serviceId}/price-versions:
+    post:
+      tags: [Catalogue]
+      security: [{ bearerAuth: [] }]
+      summary: Append an effective-dated GHS price version; owner only and audited.
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePriceVersionRequest' }
+      responses:
+        '201': { description: Immutable price version created }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: Owner role required; managers cannot change prices }
+        '409': { description: Effective range overlaps or production activation is blocked }
+  /api/v1/service-zones:
+    post:
+      tags: [Availability]
+      security: [{ bearerAuth: [] }]
+      summary: Create an exact-region/locality service zone and assign services; owner only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateServiceZoneRequest' }
+      responses:
+        '201': { description: Service zone created }
+        '403': { description: Owner role required }
+  /api/v1/business-hours:
+    post:
+      tags: [Availability]
+      security: [{ bearerAuth: [] }]
+      summary: Append effective-dated Africa/Accra business hours; owner only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBusinessHoursRequest' }
+      responses:
+        '201': { description: Business-hour window created }
+        '403': { description: Owner role required }
+        '409': { description: Window overlaps another effective window }
+  /api/v1/capacity-slots:
+    post:
+      tags: [Availability]
+      security: [{ bearerAuth: [] }]
+      summary: Create an exact UTC capacity slot; owner only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCapacitySlotRequest' }
+      responses:
+        '201': { description: Capacity slot created }
+        '403': { description: Owner role required }
+  /api/v1/policies:
+    post:
+      tags: [Policies]
+      security: [{ bearerAuth: [] }]
+      summary: Append an owner-approved, effective-dated policy version.
+      description: Recurring policy accepts only per-occurrence upfront payment with automaticBilling=false; this API does not create a recurring billing engine.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePolicyRequest' }
+      responses:
+        '201': { description: Policy version created }
+        '403': { description: Owner role required }
+        '409': { description: Effective range overlaps or production activation is blocked }
+  /api/v1/addresses:
+    get:
+      tags: [Addresses]
+      security: [{ bearerAuth: [] }]
+      summary: List the authenticated customer's own addresses.
+      responses:
+        '200': { description: Customer-owned addresses }
+        '403': { description: Customer role required }
+    post:
+      tags: [Addresses]
+      security: [{ bearerAuth: [] }]
+      summary: Create an address owned by the authenticated customer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAddressRequest' }
+      responses:
+        '201': { description: Address created }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: Customer role required }
+  /api/v1/quotes:
+    post:
+      tags: [Quotes]
+      security: [{ bearerAuth: [] }]
+      summary: Create an expiring, immutable, server-calculated quote.
+      description: Client amount, tax, currency, customer, or zone fields are rejected. Capacity is checked but not reserved until M04 booking conversion.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateQuoteRequest' }
+            example:
+              serviceId: 40000000-0000-4000-8000-000000000010
+              addressId: 40000000-0000-4000-8000-000000000099
+              startsAt: '2099-01-02T09:00:00.000Z'
+              inputs: { bedrooms: 2 }
+      responses:
+        '201':
+          description: Quote snapshot created; expiresAt uses the configured server TTL.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Quote' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: Customer role required }
+        '404': { description: Address missing or owned by another customer }
+        '409': { description: 'Service, zone, price, policy, business hours, start time, or capacity unavailable' }
+  /api/v1/quotes/{quoteId}:
+    get:
+      tags: [Quotes]
+      security: [{ bearerAuth: [] }]
+      summary: Read the authenticated customer's quote with derived expiry state.
+      parameters:
+        - in: path
+          name: quoteId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Immutable quote snapshot and current expired/bookable flags }
+        '404': { description: Missing or cross-customer quote }
 components:
   securitySchemes:
     bearerAuth:
@@ -163,6 +359,12 @@ components:
       description: Caller-supplied safe request ID or a server-generated UUID.
       schema:
         type: string
+  parameters:
+    ServiceId:
+      in: path
+      name: serviceId
+      required: true
+      schema: { type: string, format: uuid }
   schemas:
     Credentials:
       type: object
@@ -179,6 +381,180 @@ components:
           required: [displayName]
           properties:
             displayName: { type: string, minLength: 2, maxLength: 120 }
+    DevelopmentApproval:
+      type: object
+      required: [developmentOnly]
+      properties:
+        developmentOnly:
+          type: boolean
+          description: Must be true for unresolved fixture pricing, tax, zones, hours, capacity, or policy data.
+        approvalReference:
+          type: string
+          minLength: 3
+          maxLength: 120
+          description: Required when developmentOnly=false, together with the separately enabled production activation gate.
+    Service:
+      type: object
+      required: [id, code, name, description, durationMinutes, developmentOnly, recurrence]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        description: { type: string }
+        durationMinutes: { type: integer }
+        developmentOnly: { type: boolean }
+        recurrence:
+          type: object
+          description: Scheduling metadata only; automatic billing is always false in M03.
+        indicativePrice:
+          type: object
+          properties:
+            currency: { type: string, const: GHS }
+            baseAmountMinor: { type: integer }
+            taxBasisPoints: { type: integer }
+            priceVersion: { type: integer }
+            developmentOnly: { type: boolean }
+    CreateServiceRequest:
+      allOf:
+        - $ref: '#/components/schemas/DevelopmentApproval'
+        - type: object
+          additionalProperties: false
+          required: [code, name, description, durationMinutes, status, recurrence]
+          properties:
+            code: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }
+            name: { type: string, minLength: 2, maxLength: 120 }
+            description: { type: string, minLength: 10, maxLength: 1000 }
+            durationMinutes: { type: integer, minimum: 30, maximum: 1440 }
+            status: { type: string, enum: [draft, active, inactive] }
+            recurrence:
+              oneOf:
+                - type: object
+                  additionalProperties: false
+                  required: [mode]
+                  properties: { mode: { const: one_time } }
+                - type: object
+                  additionalProperties: false
+                  required: [mode, unit, interval]
+                  properties:
+                    mode: { const: recurring }
+                    unit: { type: string, enum: [week, month] }
+                    interval: { type: integer, minimum: 1, maximum: 52 }
+    CreatePriceVersionRequest:
+      allOf:
+        - $ref: '#/components/schemas/DevelopmentApproval'
+        - type: object
+          additionalProperties: false
+          required: [baseAmountMinor, includedBedrooms, bedroomSurchargeMinor, taxBasisPoints, effectiveFrom, reason]
+          properties:
+            baseAmountMinor: { type: integer, minimum: 0, description: GHS pesewas }
+            includedBedrooms: { type: integer, minimum: 0, maximum: 20 }
+            bedroomSurchargeMinor: { type: integer, minimum: 0, description: GHS pesewas }
+            taxBasisPoints: { type: integer, minimum: 0, maximum: 10000 }
+            effectiveFrom: { type: string, format: date-time }
+            effectiveTo: { type: string, format: date-time }
+            reason: { type: string, minLength: 3, maxLength: 255 }
+    CreateServiceZoneRequest:
+      allOf:
+        - $ref: '#/components/schemas/DevelopmentApproval'
+        - type: object
+          additionalProperties: false
+          required: [code, name, region, localities, serviceIds, status]
+          properties:
+            code: { type: string }
+            name: { type: string }
+            region: { type: string }
+            localities: { type: array, minItems: 1, items: { type: string } }
+            serviceIds: { type: array, minItems: 1, items: { type: string, format: uuid } }
+            status: { type: string, enum: [active, inactive] }
+    CreateBusinessHoursRequest:
+      allOf:
+        - $ref: '#/components/schemas/DevelopmentApproval'
+        - type: object
+          additionalProperties: false
+          required: [dayOfWeek, opensAt, closesAt, effectiveFrom]
+          properties:
+            dayOfWeek: { type: integer, minimum: 0, maximum: 6, description: '0=Sunday, interpreted in Africa/Accra' }
+            opensAt: { type: string, pattern: '^(?:[01]\d|2[0-3]):[0-5]\d$' }
+            closesAt: { type: string, pattern: '^(?:[01]\d|2[0-3]):[0-5]\d$' }
+            effectiveFrom: { type: string, format: date }
+            effectiveTo: { type: string, format: date }
+    CreateCapacitySlotRequest:
+      allOf:
+        - $ref: '#/components/schemas/DevelopmentApproval'
+        - type: object
+          additionalProperties: false
+          required: [serviceId, startsAt, endsAt, capacityTotal, status]
+          properties:
+            serviceId: { type: string, format: uuid }
+            startsAt: { type: string, format: date-time, description: UTC instant }
+            endsAt: { type: string, format: date-time, description: UTC instant }
+            capacityTotal: { type: integer, minimum: 1, maximum: 10000 }
+            status: { type: string, enum: [active, inactive] }
+    CreatePolicyRequest:
+      allOf:
+        - $ref: '#/components/schemas/DevelopmentApproval'
+        - type: object
+          additionalProperties: false
+          required: [policyType, title, rules, effectiveFrom]
+          properties:
+            policyType: { type: string, enum: [cancellation, rescheduling, reclean, recurring] }
+            title: { type: string, minLength: 3, maxLength: 160 }
+            rules: { type: object, description: Strict type-specific rules; recurring requires per_occurrence_upfront and automaticBilling=false. }
+            effectiveFrom: { type: string, format: date-time }
+            effectiveTo: { type: string, format: date-time }
+    CreateAddressRequest:
+      type: object
+      additionalProperties: false
+      required: [label, addressLine1, locality, region]
+      properties:
+        label: { type: string, maxLength: 80 }
+        addressLine1: { type: string, minLength: 5, maxLength: 255 }
+        addressLine2: { type: string, maxLength: 255 }
+        locality: { type: string, minLength: 2, maxLength: 120 }
+        region: { type: string, minLength: 2, maxLength: 120 }
+        postalCode: { type: string, maxLength: 30 }
+    CreateQuoteRequest:
+      type: object
+      additionalProperties: false
+      required: [serviceId, addressId, startsAt, inputs]
+      properties:
+        serviceId: { type: string, format: uuid }
+        addressId: { type: string, format: uuid }
+        startsAt: { type: string, format: date-time }
+        inputs:
+          type: object
+          additionalProperties: false
+          required: [bedrooms]
+          properties:
+            bedrooms: { type: integer, minimum: 0, maximum: 20 }
+    Quote:
+      type: object
+      required: [id, serviceId, addressId, startsAt, startsAtBusinessTime, expiresAt, expired, bookable, currency, subtotalMinor, tax, totalMinor, inputs, service, address, pricing, policies, recurringBillingCreated]
+      properties:
+        id: { type: string, format: uuid }
+        serviceId: { type: string, format: uuid }
+        addressId: { type: string, format: uuid }
+        priceVersionId: { type: string, format: uuid }
+        startsAt: { type: string, format: date-time }
+        startsAtBusinessTime: { type: string, example: '2099-01-02T09:00:00[Africa/Accra]' }
+        expiresAt: { type: string, format: date-time }
+        expired: { type: boolean }
+        bookable: { type: boolean }
+        currency: { type: string, const: GHS }
+        subtotalMinor: { type: integer }
+        tax:
+          type: object
+          required: [basisPoints, amountMinor]
+          properties:
+            basisPoints: { type: integer }
+            amountMinor: { type: integer }
+        totalMinor: { type: integer }
+        inputs: { type: object }
+        service: { type: object }
+        address: { type: object }
+        pricing: { type: object }
+        policies: { type: object }
+        recurringBillingCreated: { type: boolean, const: false }
     Health:
       type: object
       additionalProperties: false

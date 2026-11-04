@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "ace10000-0000-4000-8000-000000000001",
     "name": "Ahoden Elite Clean Backend",
-    "description": "Executable requests are added milestone by milestone. M01 has no authentication fixtures.",
+    "description": "Executable requests are added milestone by milestone. M03 uses conspicuously labelled nonproduction catalogue fixtures and server-calculated GHS amounts.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -133,6 +133,174 @@
           "name": "Current user - 200",
           "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('status is 200', () => pm.response.to.have.status(200));","pm.test('same customer', () => pm.expect(pm.response.json().user.id).to.eql(pm.collectionVariables.get('m02UserId')));"]}}],
           "request": {"method":"GET","header":[{"key":"Authorization","value":"Bearer {{m02AccessToken}}"}],"url":"{{baseUrl}}/api/v1/auth/me"}
+        }
+      ]
+    },
+    {
+      "name": "M03 Catalogue and Quotes",
+      "description": "Automated public catalogue, customer-owned address, server-calculated quote, client-amount rejection, and out-of-zone cases. M02 Authentication must run first to supply the customer access token.",
+      "item": [
+        {
+          "name": "List active services - 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('development fixture is explicitly labelled', () => { const service = pm.response.json().data.find((item) => item.id === pm.environment.get('m03ServiceId')); pm.expect(service).to.be.an('object'); pm.expect(service.developmentOnly).to.eql(true); pm.expect(service.indicativePrice.currency).to.eql('GHS'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/services",
+            "description": "Public active catalogue; role: none; expected 200."
+          }
+        },
+        {
+          "name": "Create in-zone customer address - 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('m03AddressId', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"label\":\"Postman Home\",\"addressLine1\":\"1 Development Street\",\"locality\":\"Oyarifa\",\"region\":\"Greater Accra\"}"
+            },
+            "url": "{{baseUrl}}/api/v1/addresses",
+            "description": "Customer-owned address; role: customer; expected 201."
+          }
+        },
+        {
+          "name": "Create server-calculated quote - 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('amount and tax are server calculated', () => { const quote = pm.response.json().data; pm.expect(quote.currency).to.eql('GHS'); pm.expect(quote.subtotalMinor).to.eql(55000); pm.expect(quote.tax).to.eql({basisPoints: 0, amountMinor: 0}); pm.expect(quote.totalMinor).to.eql(55000); pm.expect(quote.bookable).to.eql(true); });",
+                  "pm.collectionVariables.set('m03QuoteId', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"serviceId\":\"{{m03ServiceId}}\",\"addressId\":\"{{m03AddressId}}\",\"startsAt\":\"{{m03StartsAt}}\",\"inputs\":{\"bedrooms\":2}}"
+            },
+            "url": "{{baseUrl}}/api/v1/quotes",
+            "description": "Server-calculated immutable quote; role: customer; expected 201."
+          }
+        },
+        {
+          "name": "Reject client quote amount - 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('amount injection is validation error', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"serviceId\":\"{{m03ServiceId}}\",\"addressId\":\"{{m03AddressId}}\",\"startsAt\":\"{{m03StartsAt}}\",\"inputs\":{\"bedrooms\":2},\"totalMinor\":1}"
+            },
+            "url": "{{baseUrl}}/api/v1/quotes",
+            "description": "Negative amount injection; role: customer; expected 400."
+          }
+        },
+        {
+          "name": "Create out-of-zone customer address - 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('m03OutsideAddressId', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"label\":\"Outside\",\"addressLine1\":\"2 Development Street\",\"locality\":\"Kumasi\",\"region\":\"Ashanti\"}"
+            },
+            "url": "{{baseUrl}}/api/v1/addresses",
+            "description": "Out-of-zone fixture address; role: customer; expected 201."
+          }
+        },
+        {
+          "name": "Reject out-of-zone quote - 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('zone rejection is explicit', () => pm.expect(pm.response.json().error.code).to.eql('ADDRESS_OUT_OF_ZONE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"serviceId\":\"{{m03ServiceId}}\",\"addressId\":\"{{m03OutsideAddressId}}\",\"startsAt\":\"{{m03StartsAt}}\",\"inputs\":{\"bedrooms\":2}}"
+            },
+            "url": "{{baseUrl}}/api/v1/quotes",
+            "description": "Negative service-area case; role: customer; expected 409."
+          }
         }
       ]
     },
