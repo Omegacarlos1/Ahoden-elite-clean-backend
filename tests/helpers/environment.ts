@@ -19,6 +19,8 @@ export function testEnvironment(overrides: Partial<Environment> = {}): Environme
     ownerBootstrapToken: 'test-only-owner-bootstrap-token',
     accessTokenTtlSeconds: 900,
     refreshTokenTtlDays: 30,
+    quoteTtlSeconds: 900,
+    catalogueProductionActivationEnabled: false,
     ...overrides
   };
 }

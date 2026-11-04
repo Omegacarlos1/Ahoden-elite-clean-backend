@@ -105,4 +105,5 @@ Before performing Git operations, inspect the current branch, working tree and r
 ## Repository milestone state
 
 - M01 is `VERIFIED` on `feature/B01-backend-foundation`: local XAMPP MariaDB verification and production-equivalent MySQL 8.4 GitHub Actions run 38275026817 passed.
-- M02 is not started and requires explicit milestone approval/instruction.
+- M02 is `VERIFIED` and client-accepted on `feature/B02-authentication`: local XAMPP MariaDB verification and production-equivalent MySQL 8.4 GitHub Actions run 38286262505 passed.
+- M03 is `VERIFIED` on `feature/B03-service-catalogue-quotes-availability`: local XAMPP MariaDB verification and production-equivalent MySQL 8.4 GitHub Actions run 41837641969 passed. M04 is not started and requires explicit milestone approval/instruction.

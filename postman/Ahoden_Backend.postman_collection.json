@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "ace10000-0000-4000-8000-000000000001",
     "name": "Ahoden Elite Clean Backend",
-    "description": "Executable requests are added milestone by milestone. M01 has no authentication fixtures.",
+    "description": "Executable requests are added milestone by milestone. M03 uses conspicuously labelled nonproduction catalogue fixtures and server-calculated GHS amounts.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -133,6 +133,136 @@
           "name": "Current user - 200",
           "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('status is 200', () => pm.response.to.have.status(200));","pm.test('same customer', () => pm.expect(pm.response.json().user.id).to.eql(pm.collectionVariables.get('m02UserId')));"]}}],
           "request": {"method":"GET","header":[{"key":"Authorization","value":"Bearer {{m02AccessToken}}"}],"url":"{{baseUrl}}/api/v1/auth/me"}
+        }
+      ]
+    },
+    {
+      "name": "M03 Catalogue and Quotes - Passed Only",
+      "description": "Happy-path samples only. Run M02 Authentication first so m02AccessToken is available. Negative 400/409 behavior remains covered by Mocha and is intentionally excluded from this folder.",
+      "item": [
+        {
+          "name": "List active services - 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('development fixture is explicitly labelled', () => { const service = pm.response.json().data.find((item) => item.id === pm.environment.get('m03ServiceId')); pm.expect(service).to.be.an('object'); pm.expect(service.developmentOnly).to.eql(true); pm.expect(service.indicativePrice.currency).to.eql('GHS'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/services",
+            "description": "Public active catalogue; role: none; expected 200."
+          }
+        },
+        {
+          "name": "Create customer address - 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('m03AddressId', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"label\":\"Postman Home\",\"addressLine1\":\"1 Development Street\",\"locality\":\"Oyarifa\",\"region\":\"Greater Accra\"}"
+            },
+            "url": "{{baseUrl}}/api/v1/addresses",
+            "description": "Create an in-zone address owned by the logged-in customer; expected 201."
+          }
+        },
+        {
+          "name": "List customer addresses - 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('created address is returned', () => { const ids = pm.response.json().data.map((address) => address.id); pm.expect(ids).to.include(pm.collectionVariables.get('m03AddressId')); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/addresses",
+            "description": "List the logged-in customer's own addresses; expected 200."
+          }
+        },
+        {
+          "name": "Create server-calculated quote - 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('amount and tax are server calculated', () => { const quote = pm.response.json().data; pm.expect(quote.currency).to.eql('GHS'); pm.expect(quote.subtotalMinor).to.eql(55000); pm.expect(quote.tax).to.eql({basisPoints: 0, amountMinor: 0}); pm.expect(quote.totalMinor).to.eql(55000); pm.expect(quote.bookable).to.eql(true); });",
+                  "pm.collectionVariables.set('m03QuoteId', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"serviceId\":\"{{m03ServiceId}}\",\"addressId\":\"{{m03AddressId}}\",\"startsAt\":\"{{m03StartsAt}}\",\"inputs\":{\"bedrooms\":2}}"
+            },
+            "url": "{{baseUrl}}/api/v1/quotes",
+            "description": "Create an immutable server-calculated GHS quote; expected 201."
+          }
+        },
+        {
+          "name": "Get quote - 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('same quote is returned', () => { const quote = pm.response.json().data; pm.expect(quote.id).to.eql(pm.collectionVariables.get('m03QuoteId')); pm.expect(quote.totalMinor).to.eql(55000); pm.expect(quote.bookable).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{m02AccessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/quotes/{{m03QuoteId}}",
+            "description": "Read the logged-in customer's immutable quote; expected 200."
+          }
         }
       ]
     },

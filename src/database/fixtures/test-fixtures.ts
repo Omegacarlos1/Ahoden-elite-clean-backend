@@ -2,6 +2,12 @@ import type { Knex } from 'knex';
 
 import type { Environment } from '../../config/environment.js';
 import { assertSafeTestDatabase } from '../safety.js';
+import { seedM03PostmanFixtures } from './m03-postman-fixtures.js';
+
+export {
+  M03_POSTMAN_SERVICE_ID,
+  M03_POSTMAN_STARTS_AT
+} from './m03-postman-fixtures.js';
 
 export const TEST_FIXTURE_NAMESPACE = 'test.fixture';
 
@@ -22,6 +28,7 @@ export async function seedTestFixtures(database: Knex, environment: Environment)
         value_json: JSON.stringify({ utc: '2026-10-12T00:00:00.000Z' })
       }
     ]);
+
+    await seedM03PostmanFixtures(transaction);
   });
 }
-

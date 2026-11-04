@@ -23,7 +23,9 @@ const environmentSchema = z
     }, 'must be a base64-encoded 32-byte key'),
     OWNER_BOOTSTRAP_TOKEN: z.string().min(24),
     ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
-    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30)
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
+    QUOTE_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+    CATALOGUE_PRODUCTION_ACTIVATION_ENABLED: z.enum(['true', 'false']).default('false')
   })
   .superRefine((value, context) => {
     for (const [field, candidate] of [
@@ -77,6 +79,8 @@ export interface Environment {
   ownerBootstrapToken: string;
   accessTokenTtlSeconds: number;
   refreshTokenTtlDays: number;
+  quoteTtlSeconds: number;
+  catalogueProductionActivationEnabled: boolean;
 }
 
 export class ConfigurationError extends Error {
@@ -130,7 +134,10 @@ export function loadEnvironment(source: NodeJS.ProcessEnv = process.env): Enviro
     mfaEncryptionKey: parsed.MFA_ENCRYPTION_KEY,
     ownerBootstrapToken: parsed.OWNER_BOOTSTRAP_TOKEN,
     accessTokenTtlSeconds: parsed.ACCESS_TOKEN_TTL_SECONDS,
-    refreshTokenTtlDays: parsed.REFRESH_TOKEN_TTL_DAYS
+    refreshTokenTtlDays: parsed.REFRESH_TOKEN_TTL_DAYS,
+    quoteTtlSeconds: parsed.QUOTE_TTL_SECONDS,
+    catalogueProductionActivationEnabled:
+      parsed.CATALOGUE_PRODUCTION_ACTIVATION_ENABLED === 'true'
   };
 }
 

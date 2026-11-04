@@ -1,6 +1,11 @@
 import { expect } from 'chai';
 
-import { assertSafeTestDatabase, UnsafeTestDatabaseError } from '../../src/database/safety.js';
+import {
+  assertSafeDevelopmentDatabase,
+  assertSafeTestDatabase,
+  UnsafeDevelopmentDatabaseError,
+  UnsafeTestDatabaseError
+} from '../../src/database/safety.js';
 import { testEnvironment } from '../helpers/environment.js';
 
 describe('test database safety guard', () => {
@@ -32,6 +37,46 @@ describe('test database safety guard', () => {
         environment.databaseUrl
       )
     ).to.throw(UnsafeTestDatabaseError);
+  });
+});
+
+describe('development database safety guard', () => {
+  const databaseUrl = 'mysql://dev_app:local-only@127.0.0.1:3306/ahoden_elite_clean_dev';
+
+  it('accepts an explicitly allowed local development database', () => {
+    const environment = testEnvironment({ nodeEnv: 'development', databaseUrl });
+    expect(assertSafeDevelopmentDatabase(environment, databaseUrl).pathname).to.equal(
+      '/ahoden_elite_clean_dev'
+    );
+  });
+
+  it('rejects non-development environments and names without the _dev suffix', () => {
+    const environment = testEnvironment({ nodeEnv: 'development', databaseUrl });
+    expect(() =>
+      assertSafeDevelopmentDatabase({ ...environment, nodeEnv: 'test' }, databaseUrl)
+    ).to.throw(UnsafeDevelopmentDatabaseError);
+    expect(() =>
+      assertSafeDevelopmentDatabase(
+        environment,
+        'mysql://dev_app:x@127.0.0.1:3306/ahoden_elite_clean_test'
+      )
+    ).to.throw(UnsafeDevelopmentDatabaseError);
+  });
+
+  it('rejects unapproved hosts and a matching production target', () => {
+    const environment = testEnvironment({ nodeEnv: 'development', databaseUrl });
+    expect(() =>
+      assertSafeDevelopmentDatabase(
+        environment,
+        'mysql://dev_app:x@database.example.com/ahoden_elite_clean_dev'
+      )
+    ).to.throw(UnsafeDevelopmentDatabaseError);
+    expect(() =>
+      assertSafeDevelopmentDatabase(
+        { ...environment, productionDatabaseUrl: databaseUrl },
+        databaseUrl
+      )
+    ).to.throw(UnsafeDevelopmentDatabaseError);
   });
 });
 

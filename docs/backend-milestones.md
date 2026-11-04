@@ -103,7 +103,7 @@ Next prompt: return the complete prompt from docs/prompts/M03.md.
 
 ## M03 Service catalogue quotes and availability
 
-Effort: 4–6 developer days. Status: NOT STARTED. PRD mapping: 4.1, 12.
+Effort: 4–6 developer days. Status: VERIFIED. PRD mapping: 4.1, 12.
 
 Deliverables: Create owner-managed services, versioned price rules, service zones, business hours, capacity slots and customer addresses. Implement server-calculated quotes with expiry and immutable pricing snapshots, GHS minor-unit amounts and explicit tax fields. Store UTC and render business time in Africa/Accra. Introduce effective-dated owner-approved policies. Use conspicuously labelled development prices; do not activate unresolved prices, taxes or cancellation rules in production.
 
